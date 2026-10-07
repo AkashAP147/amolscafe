@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { ref, onValue } from 'firebase/database';
+import { ref, onValue, update } from 'firebase/database';
 import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
@@ -36,6 +36,17 @@ function OrderTracker() {
 
     return () => unsubscribe();
   }, [orderId]);
+
+  const handlePayWithCash = async () => {
+    try {
+      await update(ref(db, `orders/${orderId}`), {
+        paymentMethod: 'CASH',
+        paymentStatus: 'PENDING'
+      });
+    } catch (error) {
+      console.error("Failed to update payment method:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -141,91 +152,119 @@ function OrderTracker() {
             )}
           </div>
 
-          {/* Payment Section */}
-          {paymentSettings?.upiId && order.orderStatus !== 'CANCELLED' && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-              className="bg-[#161616] rounded-2xl border border-[#2a2a2a] p-6 sm:p-10 flex flex-col items-center justify-center text-center"
-            >
-              <h2 className="text-xl font-bold text-white mb-2">Complete Payment</h2>
-              <p className="text-[#B5B5B5] mb-8">Scan to pay securely via UPI</p>
-              
-              <div className="bg-white p-4 rounded-2xl mb-6 shadow-xl flex items-center justify-center min-h-[200px] min-w-[200px]">
-                {paymentSettings.qrImageUrl ? (
-                  <img src={paymentSettings.qrImageUrl} alt="Payment QR Code" className="w-[200px] h-[200px] object-contain" />
+          {/* Right Column: Payment (if READY) and Order Details */}
+          <div className="flex flex-col gap-8 h-full">
+            {/* Payment Section */}
+            {paymentSettings?.upiId && order.orderStatus === 'READY' && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+                className="bg-[#161616] rounded-2xl border border-[#2a2a2a] p-6 sm:p-10 flex flex-col items-center justify-center text-center"
+              >
+                {order.paymentMethod === 'CASH' ? (
+                  <>
+                    <div className="w-16 h-16 bg-[#F58A1F]/20 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle2 className="text-[#F58A1F]" size={32} />
+                    </div>
+                    <h2 className="text-xl font-bold text-white mb-2">Paying with Cash</h2>
+                    <p className="text-[#B5B5B5]">Please pay ₹{order.total} at the counter.</p>
+                  </>
                 ) : (
-                  <QRCodeSVG 
-                    value={`upi://pay?pa=${paymentSettings.upiId}&pn=${paymentSettings.upiName || 'Amols Cafe'}&am=${order.total}&cu=INR`}
-                    size={200}
-                    level="H"
-                  />
+                  <>
+                    <h2 className="text-xl font-bold text-white mb-2">Complete Payment</h2>
+                    <p className="text-[#B5B5B5] mb-8">Scan to pay securely via UPI</p>
+                    
+                    <div className="bg-white p-4 rounded-2xl mb-6 shadow-xl flex items-center justify-center min-h-[200px] min-w-[200px]">
+                      {paymentSettings.qrImageUrl ? (
+                        <img src={paymentSettings.qrImageUrl} alt="Payment QR Code" className="w-[200px] h-[200px] object-contain" />
+                      ) : (
+                        <QRCodeSVG 
+                          value={`upi://pay?pa=${paymentSettings.upiId}&pn=${paymentSettings.upiName || 'Amols Cafe'}&am=${order.total}&cu=INR`}
+                          size={200}
+                          level="H"
+                        />
+                      )}
+                    </div>
+
+                    <div className="w-full space-y-3">
+                      <a 
+                        href={`upi://pay?pa=${paymentSettings.upiId}&pn=${paymentSettings.upiName || 'Amols Cafe'}&am=${order.total}&cu=INR`}
+                        className="block w-full bg-[#F58A1F] hover:bg-[#e07a1b] text-white py-4 rounded-xl font-bold transition-colors"
+                      >
+                        Pay ₹{order.total} with UPI App
+                      </a>
+                      
+                      <div className="relative flex items-center py-2">
+                        <div className="flex-grow border-t border-[#2a2a2a]"></div>
+                        <span className="flex-shrink-0 mx-4 text-[#888] text-sm">OR</span>
+                        <div className="flex-grow border-t border-[#2a2a2a]"></div>
+                      </div>
+
+                      <button 
+                        onClick={handlePayWithCash}
+                        className="w-full bg-transparent border-2 border-[#2a2a2a] hover:border-[#F58A1F] hover:text-[#F58A1F] text-[#B5B5B5] py-4 rounded-xl font-bold transition-colors"
+                      >
+                        Continue with Cash
+                      </button>
+                      <p className="text-xs text-[#888]">Pay at the counter when you pick up your order.</p>
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            )}
+
+            {/* Order Details Section */}
+            <div className="bg-[#161616] rounded-2xl border border-[#2a2a2a] p-6 sm:p-10 flex-1 flex flex-col">
+              <h2 className="text-xl font-bold text-white mb-6 border-b border-[#2a2a2a] pb-4">Order Details</h2>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <p className="text-sm text-[#B5B5B5]">Name</p>
+                  <p className="text-white font-medium">{order.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#B5B5B5]">Phone</p>
+                  <p className="text-white font-medium">{order.phone}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-[#B5B5B5]">Order Type</p>
+                  <p className="text-white font-medium">{order.orderType}</p>
+                </div>
+                {order.tableNumber && (
+                  <div>
+                    <p className="text-sm text-[#B5B5B5]">Table</p>
+                    <p className="text-white font-medium">{order.tableNumber}</p>
+                  </div>
                 )}
               </div>
 
-              <div className="w-full">
-                <a 
-                  href={`upi://pay?pa=${paymentSettings.upiId}&pn=${paymentSettings.upiName || 'Amols Cafe'}&am=${order.total}&cu=INR`}
-                  className="block w-full bg-[#F58A1F] hover:bg-[#e07a1b] text-white py-4 rounded-xl font-bold transition-colors mb-3"
-                >
-                  Pay ₹{order.total} with UPI App
-                </a>
-                <p className="text-xs text-[#888]">Opens GPay, PhonePe, Paytm, etc. on mobile.</p>
+              <h3 className="text-white font-bold mb-4">Items</h3>
+              <ul className="space-y-4 mb-6">
+                {order.items.map((item: any, index: number) => (
+                  <li key={index} className="flex justify-between text-sm">
+                    <span className="text-[#B5B5B5]">
+                      {item.quantity} x {item.itemName} {item.variant ? `(${item.variant})` : ''}
+                    </span>
+                    <span className="text-white font-medium">₹{item.subtotal}</span>
+                  </li>
+                ))}
+              </ul>
+              
+              <div className="border-t border-[#2a2a2a] pt-4 flex justify-between text-white font-bold text-xl mt-auto">
+                <span>Total Paid</span>
+                <span className="text-[#F58A1F]">₹{order.total}</span>
               </div>
-            </motion.div>
-          )}
-        </div>
 
-        <div className="bg-[#161616] rounded-2xl border border-[#2a2a2a] p-6 sm:p-10">
-          <h2 className="text-xl font-bold text-white mb-6 border-b border-[#2a2a2a] pb-4">Order Details</h2>
-          
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <p className="text-sm text-[#B5B5B5]">Name</p>
-              <p className="text-white font-medium">{order.customerName}</p>
+              {order.specialInstructions && (
+                <div className="mt-6 p-4 bg-[#0B0B0B] rounded-xl border border-[#2a2a2a]">
+                  <p className="text-sm text-[#B5B5B5] mb-1">Special Instructions:</p>
+                  <p className="text-white text-sm">{order.specialInstructions}</p>
+                </div>
+              )}
             </div>
-            <div>
-              <p className="text-sm text-[#B5B5B5]">Phone</p>
-              <p className="text-white font-medium">{order.phone}</p>
-            </div>
-            <div>
-              <p className="text-sm text-[#B5B5B5]">Order Type</p>
-              <p className="text-white font-medium">{order.orderType}</p>
-            </div>
-            {order.tableNumber && (
-              <div>
-                <p className="text-sm text-[#B5B5B5]">Table</p>
-                <p className="text-white font-medium">{order.tableNumber}</p>
-              </div>
-            )}
           </div>
-
-          <h3 className="text-white font-bold mb-4">Items</h3>
-          <ul className="space-y-4 mb-6">
-            {order.items.map((item: any, index: number) => (
-              <li key={index} className="flex justify-between text-sm">
-                <span className="text-[#B5B5B5]">
-                  {item.quantity} x {item.itemName} {item.variant ? `(${item.variant})` : ''}
-                </span>
-                <span className="text-white font-medium">₹{item.subtotal}</span>
-              </li>
-            ))}
-          </ul>
-          
-          <div className="border-t border-[#2a2a2a] pt-4 flex justify-between text-white font-bold text-xl">
-            <span>Total Paid</span>
-            <span className="text-[#F58A1F]">₹{order.total}</span>
-          </div>
-
-          {order.specialInstructions && (
-            <div className="mt-6 p-4 bg-[#0B0B0B] rounded-xl border border-[#2a2a2a]">
-              <p className="text-sm text-[#B5B5B5] mb-1">Special Instructions:</p>
-              <p className="text-white text-sm">{order.specialInstructions}</p>
-            </div>
-          )}
         </div>
-
       </div>
     </div>
   );
