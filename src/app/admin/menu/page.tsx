@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { getDatabase, ref as dbRef, onValue, set, push, remove, update } from 'firebase/database';
 import { app } from '@/lib/firebase';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Save, X, Loader2, Upload } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Save, X, Loader2, Upload, Search } from 'lucide-react';
 
 export default function AdminMenuPage() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -147,6 +148,12 @@ export default function AdminMenuPage() {
     }
   };
 
+  const filteredItems = items.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -157,17 +164,32 @@ export default function AdminMenuPage() {
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto h-full flex flex-col">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Menu Management</h1>
           <p className="text-[#B5B5B5]">Add, edit, or remove items from your cafe menu.</p>
         </div>
-        <button 
-          onClick={openAddModal}
-          className="bg-[#F58A1F] hover:bg-[#e07a1b] text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2"
-        >
-          <Plus size={20} /> Add New Item
-        </button>
+        
+        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+          <div className="relative flex-grow sm:flex-grow-0">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-[#888]" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64 bg-[#161616] text-white border border-[#2a2a2a] pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-[#F58A1F] transition-colors"
+            />
+          </div>
+          <button 
+            onClick={openAddModal}
+            className="bg-[#F58A1F] hover:bg-[#e07a1b] text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+          >
+            <Plus size={20} /> Add New Item
+          </button>
+        </div>
       </div>
 
       <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl overflow-hidden flex-grow overflow-y-auto">
@@ -182,7 +204,7 @@ export default function AdminMenuPage() {
             </tr>
           </thead>
           <tbody className="text-white divide-y divide-[#2a2a2a]">
-            {items.map(item => (
+            {filteredItems.map(item => (
               <tr key={item.id} className="hover:bg-[#1a1a1a] transition-colors">
                 <td className="py-4 px-6">
                   <div className="flex items-center gap-4">
@@ -235,9 +257,9 @@ export default function AdminMenuPage() {
             ))}
           </tbody>
         </table>
-        {items.length === 0 && (
+        {filteredItems.length === 0 && (
           <div className="text-center py-20 text-[#B5B5B5]">
-            <p>No menu items found. Click "Add New Item" to create one.</p>
+            <p>{items.length === 0 ? 'No menu items found. Click "Add New Item" to create one.' : 'No items match your search.'}</p>
           </div>
         )}
       </div>

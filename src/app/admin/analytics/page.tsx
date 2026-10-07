@@ -35,7 +35,7 @@ export default function AdminAnalyticsPage() {
     let itemsSold = 0;
 
     orders.forEach(order => {
-      if (order.status === 'Completed') {
+      if (order.orderStatus === 'COMPLETED') {
         revenue += order.total || 0;
         completedOrders++;
         
@@ -56,9 +56,9 @@ export default function AdminAnalyticsPage() {
   const topItems = useMemo(() => {
     const itemCounts: Record<string, number> = {};
     orders.forEach(order => {
-      if (order.status === 'Completed' && order.items) {
+      if (order.orderStatus === 'COMPLETED' && order.items) {
         order.items.forEach((item: any) => {
-          itemCounts[item.name] = (itemCounts[item.name] || 0) + (item.quantity || 1);
+          itemCounts[item.itemName] = (itemCounts[item.itemName] || 0) + (item.quantity || 1);
         });
       }
     });
