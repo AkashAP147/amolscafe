@@ -40,8 +40,11 @@ export default function Navbar() {
           
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link href="/" className="font-bold text-2xl tracking-tight text-white flex items-center gap-2">
-              <span className="text-[#F58A1F]">Amol's</span> Cafe
+            <Link href="/" className="flex items-center gap-2 z-50">
+              <img src="/logo.png" alt="Amols Cafe Logo" className="h-10 w-auto object-contain shrink-0" />
+              <span className="font-bold text-2xl tracking-tight text-white hidden sm:block">
+                <span className="text-[#F58A1F]">Amol's</span> Cafe
+              </span>
             </Link>
           </div>
 

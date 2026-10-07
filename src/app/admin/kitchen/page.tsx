@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { db } from '@/lib/firebase';
 import { ref, onValue, update } from 'firebase/database';
 import { ChefHat, CheckCircle2, Clock, PackageCheck, AlertCircle } from 'lucide-react';
@@ -10,8 +10,13 @@ import { formatDistanceToNow } from 'date-fns';
 export default function KitchenDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const previousPendingCount = useRef(0);
 
   useEffect(() => {
+    // Request notification permission
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      Notification.requestPermission();
+    }
     // Listen to all orders for the kitchen screen
     const ordersRef = ref(db, 'orders');
     const unsubscribe = onValue(ordersRef, (snapshot) => {
@@ -51,6 +56,21 @@ export default function KitchenDashboard() {
   const accepted = activeOrders.filter(o => o.orderStatus === 'ACCEPTED');
   const preparing = activeOrders.filter(o => o.orderStatus === 'PREPARING');
   const ready = activeOrders.filter(o => o.orderStatus === 'READY');
+
+  useEffect(() => {
+    if (pending.length > previousPendingCount.current) {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification("New Order Received!", {
+          body: `You have ${pending.length - previousPendingCount.current} new order(s) waiting to be accepted.`,
+          icon: "/logo.png"
+        });
+        // Play a simple beep sound
+        const audio = new Audio('/bell.mp3'); // We'll just assume this or fallback, or we can synthesize a beep
+        audio.play().catch(e => console.log('Audio play failed', e));
+      }
+    }
+    previousPendingCount.current = pending.length;
+  }, [pending.length]);
 
   if (loading) {
     return (

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ChefHat, ClipboardList, TrendingUp, Settings, LogOut, Menu as MenuIcon } from 'lucide-react';
+import { LayoutDashboard, ChefHat, ClipboardList, TrendingUp, Settings, LogOut, Menu as MenuIcon, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 
 const sidebarLinks = [
@@ -22,8 +22,9 @@ export default function AdminSidebar() {
     <>
       {/* Mobile Header */}
       <div className="md:hidden bg-[#161616] border-b border-[#2a2a2a] p-4 flex justify-between items-center sticky top-0 z-50">
-        <div className="font-bold text-xl text-white">
-          <span className="text-[#F58A1F]">Amol's</span> Admin
+        <div className="flex items-center gap-3 font-bold text-xl text-white">
+          <img src="/logo.png" alt="Amols Cafe Logo" className="h-10 w-auto object-contain shrink-0" />
+          <span><span className="text-[#F58A1F]">Amol's</span> Admin</span>
         </div>
         <button onClick={() => setIsOpen(!isOpen)} className="text-white">
           <MenuIcon size={24} />
@@ -39,10 +40,15 @@ export default function AdminSidebar() {
         flex flex-col h-full
       `}>
         <div className="p-6 hidden md:block border-b border-[#2a2a2a]">
-          <div className="font-bold text-2xl tracking-tight text-white flex items-center gap-2">
-            <span className="text-[#F58A1F]">Amol's</span> Admin
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Amols Cafe Logo" className="h-10 w-auto object-contain shrink-0" />
+            <div>
+              <div className="font-bold text-xl tracking-tight text-white leading-tight">
+                <span className="text-[#F58A1F]">Amol's</span> Admin
+              </div>
+              <p className="text-xs text-[#B5B5B5]">Management Portal</p>
+            </div>
           </div>
-          <p className="text-xs text-[#B5B5B5] mt-1">Management Portal</p>
         </div>
 
         <nav className="flex-grow p-4 space-y-2 overflow-y-auto">
@@ -68,7 +74,15 @@ export default function AdminSidebar() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-[#2a2a2a]">
+        <div className="p-4 border-t border-[#2a2a2a] space-y-2">
+          <Link
+            href="/"
+            target="_blank"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left text-blue-400 hover:bg-blue-400/10 transition-colors font-medium"
+          >
+            <ExternalLink size={20} />
+            View Customer Site
+          </Link>
           <button 
             onClick={() => {
               import('@/lib/firebase').then(({ auth }) => {

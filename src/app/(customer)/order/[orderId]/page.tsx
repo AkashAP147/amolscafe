@@ -17,6 +17,28 @@ function OrderTracker() {
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  const [hasNotifiedReady, setHasNotifiedReady] = useState(false);
+
+  useEffect(() => {
+    if (order?.orderStatus === 'READY' && !hasNotifiedReady) {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification("Order Ready!", {
+          body: `Your order is ready for pickup at the counter!`,
+          icon: "/logo.png"
+        });
+        const audio = new Audio('/bell.mp3');
+        audio.play().catch(e => console.log('Audio play failed', e));
+      }
+      setHasNotifiedReady(true);
+    }
+  }, [order?.orderStatus, hasNotifiedReady]);
+
+  useEffect(() => {
     if (!orderId) return;
     
     const orderRef = ref(db, `orders/${orderId}`);
