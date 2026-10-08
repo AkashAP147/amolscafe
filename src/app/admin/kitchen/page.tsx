@@ -14,9 +14,13 @@ export default function KitchenDashboard() {
   const previousPendingCount = useRef(0);
 
   useEffect(() => {
-    // Request notification permission
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      Notification.requestPermission();
+    // Request notification permission safely (Safari iOS might throw without user gesture)
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        Notification.requestPermission().catch(e => console.warn('Notification permission error:', e));
+      }
+    } catch (err) {
+      console.warn("Notification API not fully supported", err);
     }
     // Listen to all orders for the kitchen screen
     const ordersRef = ref(db, 'orders');
@@ -60,14 +64,18 @@ export default function KitchenDashboard() {
 
   useEffect(() => {
     if (pending.length > previousPendingCount.current) {
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification("New Order Received!", {
-          body: `You have ${pending.length - previousPendingCount.current} new order(s) waiting to be accepted.`,
-          icon: "/logo.png"
-        });
-        // Play a simple beep sound
-        const audio = new Audio('/bell.mp3'); // We'll just assume this or fallback, or we can synthesize a beep
-        audio.play().catch(e => console.log('Audio play failed', e));
+      try {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification("New Order Received!", {
+            body: `You have ${pending.length - previousPendingCount.current} new order(s) waiting to be accepted.`,
+            icon: "/logo.png"
+          });
+          // Play a simple beep sound safely
+          const audio = new Audio('/bell.mp3'); 
+          audio.play().catch(e => console.log('Audio play failed', e));
+        }
+      } catch (err) {
+        console.warn("Could not show notification", err);
       }
     }
     previousPendingCount.current = pending.length;
