@@ -6,8 +6,8 @@ import { LayoutDashboard, ChefHat, ClipboardList, TrendingUp, Settings, LogOut, 
 import { useState } from 'react';
 
 const sidebarLinks = [
+  { name: 'Kitchen ', href: '/admin/kitchen', icon: ChefHat },
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-  { name: 'Kitchen', href: '/admin/kitchen', icon: ChefHat },
   { name: 'Orders', href: '/admin/orders', icon: ClipboardList },
   { name: 'Menu & Prices', href: '/admin/menu', icon: MenuIcon },
   { name: 'Analytics', href: '/admin/analytics', icon: TrendingUp },
@@ -37,7 +37,7 @@ export default function AdminSidebar() {
         w-64 bg-[#161616] border-r border-[#2a2a2a]
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        flex flex-col h-full
+        flex flex-col h-full pt-[72px] md:pt-0
       `}>
         <div className="p-6 hidden md:block border-b border-[#2a2a2a]">
           <div className="flex items-center gap-3">
@@ -55,17 +55,16 @@ export default function AdminSidebar() {
           {sidebarLinks.map((link) => {
             const Icon = link.icon;
             const isActive = pathname.startsWith(link.href);
-            
+
             return (
               <Link
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${
-                  isActive 
-                    ? 'bg-[#F58A1F] text-white' 
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${isActive
+                    ? 'bg-[#F58A1F] text-white'
                     : 'text-[#B5B5B5] hover:bg-[#2a2a2a] hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon size={20} />
                 {link.name}
@@ -83,7 +82,7 @@ export default function AdminSidebar() {
             <ExternalLink size={20} />
             View Customer Site
           </Link>
-          <button 
+          <button
             onClick={() => {
               import('@/lib/firebase').then(({ auth }) => {
                 import('firebase/auth').then(({ signOut }) => signOut(auth));
@@ -99,7 +98,7 @@ export default function AdminSidebar() {
 
       {/* Mobile Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-30 md:hidden"
           onClick={() => setIsOpen(false)}
         />

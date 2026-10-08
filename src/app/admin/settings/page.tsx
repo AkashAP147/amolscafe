@@ -53,7 +53,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto h-full overflow-y-auto">
+    <div className="p-4 md:p-10 max-w-4xl mx-auto h-full overflow-y-auto">
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Cafe Settings</h1>
         <p className="text-[#B5B5B5]">Manage your cafe's public profile and operational settings.</p>

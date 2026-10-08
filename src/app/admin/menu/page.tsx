@@ -163,8 +163,8 @@ export default function AdminMenuPage() {
   }
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto h-full flex flex-col">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+    <div className="p-4 md:p-10 max-w-7xl mx-auto h-full flex flex-col">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Menu Management</h1>
           <p className="text-[#B5B5B5]">Add, edit, or remove items from your cafe menu.</p>
@@ -192,8 +192,8 @@ export default function AdminMenuPage() {
         </div>
       </div>
 
-      <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl overflow-hidden flex-grow overflow-y-auto">
-        <table className="w-full text-left border-collapse">
+      <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl overflow-hidden flex-grow overflow-x-auto overflow-y-auto">
+        <table className="w-full text-left border-collapse min-w-[600px]">
           <thead className="bg-[#0B0B0B] sticky top-0 z-10">
             <tr className="text-[#B5B5B5] border-b border-[#2a2a2a]">
               <th className="py-4 px-6 font-medium">Item</th>
@@ -369,7 +369,7 @@ export default function AdminMenuPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-6 p-4 bg-[#0B0B0B] border border-[#2a2a2a] rounded-xl">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 p-4 bg-[#0B0B0B] border border-[#2a2a2a] rounded-xl">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input 
                     type="checkbox" 
@@ -380,7 +380,7 @@ export default function AdminMenuPage() {
                   <span className="text-white font-medium">Available in Stock</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer border-l border-[#2a2a2a] pl-6">
+                <label className="flex items-center gap-3 cursor-pointer sm:border-l sm:border-[#2a2a2a] sm:pl-6 w-full sm:w-auto pt-4 sm:pt-0 border-t sm:border-t-0 border-[#2a2a2a]">
                   <input 
                     type="checkbox" 
                     checked={formData.popular}

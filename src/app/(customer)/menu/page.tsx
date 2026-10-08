@@ -4,8 +4,12 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { ref, onValue, query, orderByChild } from 'firebase/database';
 import { useCartStore } from '@/store/useCartStore';
-import { Search, Plus, Minus, Filter, ShoppingBag } from 'lucide-react';
+import { Search, Plus, Minus, Filter, ShoppingBag, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface MenuItem {
   id: string;
@@ -24,6 +28,8 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [user, setUser] = useState<any>(null);
+  const router = useRouter();
   
   const addItem = useCartStore((state) => state.addItem);
 
@@ -52,6 +58,13 @@ export default function MenuPage() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribeAuth();
+  }, []);
+
   const categories = ['All', ...Array.from(new Set(menuItems.map(item => item.category)))];
 
   const filteredItems = menuItems.filter(item => {
@@ -61,14 +74,14 @@ export default function MenuPage() {
     return matchesCategory && matchesSearch;
   });
 
-  const [toastItem, setToastItem] = useState<{name: string, image?: string} | null>(null);
+  const [toastItem, setToastItem] = useState<{name: string, image?: string, isLoginAlert?: boolean} | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  const handleShowToast = (item: {name: string, image?: string}) => {
+  const handleShowToast = (item: {name: string, image?: string, isLoginAlert?: boolean}) => {
     setToastItem(item);
     setTimeout(() => {
       setToastItem(null);
-    }, 3000);
+    }, item.isLoginAlert ? 4000 : 3000);
   };
 
   return (
@@ -129,7 +142,7 @@ export default function MenuPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence>
               {filteredItems.map((item) => (
-                <MenuItemCard key={item.id} item={item} addItem={addItem} showToast={handleShowToast} onPreview={setPreviewImage} />
+                <MenuItemCard key={item.id} item={item} addItem={addItem} showToast={handleShowToast} onPreview={setPreviewImage} user={user} router={router} />
               ))}
             </AnimatePresence>
           </div>
@@ -177,17 +190,32 @@ export default function MenuPage() {
             exit={{ opacity: 0, y: 50, x: '-50%' }}
             className="fixed bottom-10 left-1/2 z-50 bg-[#161616] border border-[#2a2a2a] shadow-2xl rounded-2xl p-3 flex items-center gap-4 min-w-[300px]"
           >
-            {toastItem.image ? (
-              <img src={toastItem.image} alt={toastItem.name} className="w-12 h-12 rounded-xl object-cover" />
+            {toastItem.isLoginAlert ? (
+              <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center shrink-0">
+                <ShoppingBag size={20} className="text-red-500" />
+              </div>
+            ) : toastItem.image ? (
+              <img src={toastItem.image} alt={toastItem.name} className="w-12 h-12 rounded-xl object-cover shrink-0" />
             ) : (
-              <div className="w-12 h-12 bg-[#2a2a2a] rounded-xl flex items-center justify-center">
+              <div className="w-12 h-12 bg-[#2a2a2a] rounded-xl flex items-center justify-center shrink-0">
                 <ShoppingBag size={20} className="text-[#B5B5B5]" />
               </div>
             )}
             <div>
-              <p className="text-white font-bold text-sm">Added to Cart!</p>
+              <p className={`font-bold text-sm ${toastItem.isLoginAlert ? 'text-red-500' : 'text-white'}`}>
+                {toastItem.isLoginAlert ? 'Login Required' : 'Added to Cart!'}
+              </p>
               <p className="text-[#B5B5B5] text-xs">{toastItem.name}</p>
             </div>
+            {toastItem.isLoginAlert ? (
+              <Link href="/login" className="ml-auto bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-colors font-bold text-sm">
+                Login
+              </Link>
+            ) : (
+              <Link href="/cart" className="ml-auto bg-[#F58A1F] text-white p-2 rounded-xl hover:bg-[#e07a1b] transition-colors flex items-center justify-center shrink-0">
+                <ChevronRight size={20} />
+              </Link>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -195,7 +223,7 @@ export default function MenuPage() {
   );
 }
 
-function MenuItemCard({ item, addItem, showToast, onPreview }: { item: MenuItem, addItem: any, showToast: any, onPreview: any }) {
+function MenuItemCard({ item, addItem, showToast, onPreview, user, router }: { item: MenuItem, addItem: any, showToast: any, onPreview: any, user: any, router: any }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState(item.variants ? item.variants[0] : null);
 
@@ -203,6 +231,14 @@ function MenuItemCard({ item, addItem, showToast, onPreview }: { item: MenuItem,
   
   const handleAddToCart = () => {
     if (!item.available) return;
+    
+    if (!user) {
+      showToast({
+        name: "Please sign in to place an order.",
+        isLoginAlert: true
+      });
+      return;
+    }
     
     addItem({
       id: selectedVariant ? `${item.id}-${selectedVariant.name}` : item.id,

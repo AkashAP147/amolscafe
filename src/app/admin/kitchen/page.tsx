@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 export default function KitchenDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY'>('PENDING');
   const previousPendingCount = useRef(0);
 
   useEffect(() => {
@@ -81,8 +82,8 @@ export default function KitchenDashboard() {
   }
 
   return (
-    <div className="p-6 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 md:p-6 h-full flex flex-col">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
             <ChefHat className="text-[#F58A1F]" size={32} />
@@ -96,51 +97,66 @@ export default function KitchenDashboard() {
         </div>
       </div>
 
-      <div className="flex-grow flex gap-6 overflow-x-auto pb-4 snap-x">
+      <div className="md:hidden flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+        <button onClick={() => setActiveTab('PENDING')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'PENDING' ? 'bg-blue-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>New ({pending.length})</button>
+        <button onClick={() => setActiveTab('ACCEPTED')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'ACCEPTED' ? 'bg-yellow-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>Queue ({accepted.length})</button>
+        <button onClick={() => setActiveTab('PREPARING')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'PREPARING' ? 'bg-[#F58A1F] text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>Prep ({preparing.length})</button>
+        <button onClick={() => setActiveTab('READY')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'READY' ? 'bg-green-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>Ready ({ready.length})</button>
+      </div>
+
+      <div className="flex-grow flex flex-col md:flex-row gap-6 overflow-hidden md:overflow-x-auto pb-4">
         
         {/* NEW ORDERS */}
-        <KitchenColumn 
-          title="New Orders" 
-          count={pending.length} 
-          color="bg-blue-500"
-          orders={pending}
-          actionLabel="ACCEPT ORDER"
-          actionColor="bg-blue-600 hover:bg-blue-500"
-          onAction={(id: string) => updateOrderStatus(id, 'ACCEPTED')}
-        />
+        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'PENDING' ? 'block' : 'hidden md:block'}`}>
+          <KitchenColumn 
+            title="New Orders" 
+            count={pending.length} 
+            color="bg-blue-500"
+            orders={pending}
+            actionLabel="ACCEPT ORDER"
+            actionColor="bg-blue-600 hover:bg-blue-500"
+            onAction={(id: string) => updateOrderStatus(id, 'ACCEPTED')}
+          />
+        </div>
 
         {/* ACCEPTED / QUEUE */}
-        <KitchenColumn 
-          title="Queue" 
-          count={accepted.length} 
-          color="bg-yellow-500"
-          orders={accepted}
-          actionLabel="START PREPARING"
-          actionColor="bg-yellow-600 hover:bg-yellow-500"
-          onAction={(id: string) => updateOrderStatus(id, 'PREPARING')}
-        />
+        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'ACCEPTED' ? 'block' : 'hidden md:block'}`}>
+          <KitchenColumn 
+            title="Queue" 
+            count={accepted.length} 
+            color="bg-yellow-500"
+            orders={accepted}
+            actionLabel="START PREPARING"
+            actionColor="bg-yellow-600 hover:bg-yellow-500"
+            onAction={(id: string) => updateOrderStatus(id, 'PREPARING')}
+          />
+        </div>
 
         {/* PREPARING */}
-        <KitchenColumn 
-          title="Preparing" 
-          count={preparing.length} 
-          color="bg-[#F58A1F]"
-          orders={preparing}
-          actionLabel="MARK READY"
-          actionColor="bg-[#F58A1F] hover:bg-[#e07a1b]"
-          onAction={(id: string) => updateOrderStatus(id, 'READY')}
-        />
+        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'PREPARING' ? 'block' : 'hidden md:block'}`}>
+          <KitchenColumn 
+            title="Preparing" 
+            count={preparing.length} 
+            color="bg-[#F58A1F]"
+            orders={preparing}
+            actionLabel="MARK READY"
+            actionColor="bg-[#F58A1F] hover:bg-[#e07a1b]"
+            onAction={(id: string) => updateOrderStatus(id, 'READY')}
+          />
+        </div>
 
         {/* READY */}
-        <KitchenColumn 
-          title="Ready for Pickup" 
-          count={ready.length} 
-          color="bg-green-500"
-          orders={ready}
-          actionLabel="COMPLETE ORDER"
-          actionColor="bg-green-600 hover:bg-green-500"
-          onAction={(id: string) => updateOrderStatus(id, 'COMPLETED')}
-        />
+        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'READY' ? 'block' : 'hidden md:block'}`}>
+          <KitchenColumn 
+            title="Ready for Pickup" 
+            count={ready.length} 
+            color="bg-green-500"
+            orders={ready}
+            actionLabel="COMPLETE ORDER"
+            actionColor="bg-green-600 hover:bg-green-500"
+            onAction={(id: string) => updateOrderStatus(id, 'COMPLETED')}
+          />
+        </div>
 
       </div>
     </div>
@@ -149,7 +165,7 @@ export default function KitchenDashboard() {
 
 function KitchenColumn({ title, count, color, orders, actionLabel, actionColor, onAction }: any) {
   return (
-    <div className="flex-none w-80 sm:w-96 flex flex-col h-full bg-[#161616] rounded-2xl border border-[#2a2a2a] overflow-hidden snap-center">
+    <div className="flex flex-col h-full bg-[#161616] rounded-2xl border border-[#2a2a2a] overflow-hidden">
       <div className="p-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#0B0B0B]/50">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${color}`}></div>

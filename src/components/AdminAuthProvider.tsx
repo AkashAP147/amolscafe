@@ -44,7 +44,7 @@ export default function AdminAuthProvider({ children }: { children: React.ReactN
   if (!user) return null;
 
   return (
-    <div className="flex h-screen bg-[#0B0B0B] overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-[#0B0B0B] overflow-hidden">
       <AdminSidebar />
       <main className="flex-grow overflow-y-auto bg-[#0B0B0B]">
         {children}

@@ -67,8 +67,8 @@ export default function AdminOrdersPage() {
   }
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto h-full flex flex-col">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="p-4 md:p-10 max-w-7xl mx-auto h-full flex flex-col">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Order History</h1>
           <p className="text-[#B5B5B5]">View and manage all customer orders.</p>
@@ -99,7 +99,7 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl overflow-hidden flex-grow overflow-y-auto">
+      <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl overflow-hidden flex-grow overflow-x-auto overflow-y-auto">
         <table className="w-full text-left border-collapse min-w-[800px]">
           <thead className="bg-[#0B0B0B] sticky top-0 z-10">
             <tr className="text-[#B5B5B5] border-b border-[#2a2a2a]">

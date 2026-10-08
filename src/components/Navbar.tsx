@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingCart, Menu, X, User, LogOut, FileText } from 'lucide-react';
+import { ShoppingCart, Menu, X, User, LogOut, FileText, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/useCartStore';
 import { auth } from '@/lib/firebase';
@@ -91,6 +91,11 @@ export default function Navbar() {
                     <Link href="/my-orders" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#B5B5B5] hover:text-white hover:bg-[#2a2a2a] transition-colors">
                       <FileText size={16} /> My Orders
                     </Link>
+                    {user?.email === 'amolscafe@gmail.com' && (
+                      <Link href="/admin/dashboard" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#F58A1F] hover:bg-[#2a2a2a] transition-colors">
+                        <Shield size={16} /> Admin Portal
+                      </Link>
+                    )}
                     <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:text-red-400 hover:bg-[#2a2a2a] transition-colors text-left mt-1">
                       <LogOut size={16} /> Sign Out
                     </button>
@@ -173,6 +178,15 @@ export default function Navbar() {
                 >
                   My Orders
                 </Link>
+                {user?.email === 'amolscafe@gmail.com' && (
+                  <Link
+                    href="/admin/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block px-3 py-3 rounded-xl text-base font-medium text-[#F58A1F] hover:bg-[#0B0B0B]"
+                  >
+                    Admin Portal
+                  </Link>
+                )}
                 <button
                   onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
                   className="w-full text-left px-3 py-3 rounded-xl text-base font-medium text-red-500 hover:text-red-400 hover:bg-[#0B0B0B]"

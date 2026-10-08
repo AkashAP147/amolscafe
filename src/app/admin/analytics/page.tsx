@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
-import { Loader2, TrendingUp, DollarSign, ShoppingBag, Users } from 'lucide-react';
+import { Loader2, TrendingUp, DollarSign, ShoppingBag, Users, Clock, CheckCircle2, IndianRupee } from 'lucide-react';
+import { format, isToday } from 'date-fns';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line
@@ -69,6 +70,14 @@ export default function AdminAnalyticsPage() {
       .slice(0, 5);
   }, [orders]);
 
+  // Calculate today's metrics
+  const todaysOrdersList = orders.filter(o => isToday(new Date(o.createdAt)));
+  const todaysRevenue = todaysOrdersList
+    .filter(o => o.orderStatus === 'COMPLETED')
+    .reduce((sum, o) => sum + o.total, 0);
+  const pendingCount = todaysOrdersList.filter(o => o.orderStatus === 'PENDING').length;
+  const completedCount = todaysOrdersList.filter(o => o.orderStatus === 'COMPLETED').length;
+
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -82,8 +91,61 @@ export default function AdminAnalyticsPage() {
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Revenue Analytics</h1>
         <p className="text-[#B5B5B5]">Track your cafe's performance and sales data.</p>
+        <p className="text-[#F58A1F] font-medium mt-2">{format(new Date(), 'EEEE, MMMM do, yyyy')}</p>
       </div>
 
+      <h2 className="text-xl font-bold text-white mb-4">Today's Performance</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="bg-[#161616] border border-[#2a2a2a] p-6 rounded-2xl">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+              <IndianRupee className="text-green-500" size={24} />
+            </div>
+            <div>
+              <p className="text-[#B5B5B5] text-sm font-medium">Today's Revenue</p>
+              <h3 className="text-2xl font-bold text-white">₹{todaysRevenue.toLocaleString()}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#161616] border border-[#2a2a2a] p-6 rounded-2xl">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <ShoppingBag className="text-blue-500" size={24} />
+            </div>
+            <div>
+              <p className="text-[#B5B5B5] text-sm font-medium">Total Orders</p>
+              <h3 className="text-2xl font-bold text-white">{todaysOrdersList.length}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#161616] border border-[#2a2a2a] p-6 rounded-2xl">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+              <Clock className="text-yellow-500" size={24} />
+            </div>
+            <div>
+              <p className="text-[#B5B5B5] text-sm font-medium">Pending</p>
+              <h3 className="text-2xl font-bold text-white">{pendingCount}</h3>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-[#161616] border border-[#2a2a2a] p-6 rounded-2xl">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-[#F58A1F]/10 flex items-center justify-center">
+              <CheckCircle2 className="text-[#F58A1F]" size={24} />
+            </div>
+            <div>
+              <p className="text-[#B5B5B5] text-sm font-medium">Completed</p>
+              <h3 className="text-2xl font-bold text-white">{completedCount}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h2 className="text-xl font-bold text-white mb-4">All-Time Statistics</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-[#161616] border border-[#2a2a2a] p-6 rounded-2xl">
           <div className="flex items-center gap-4 mb-4">

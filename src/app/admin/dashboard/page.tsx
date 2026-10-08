@@ -47,43 +47,11 @@ export default function AdminDashboard() {
   const completedCount = todaysOrders.filter(o => o.orderStatus === 'COMPLETED').length;
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto">
+    <div className="p-4 md:p-10 max-w-7xl mx-auto">
       <div className="mb-10">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Dashboard</h1>
         <p className="text-[#B5B5B5]">Welcome back. Here's what's happening at Amol's Cafe today.</p>
         <p className="text-[#F58A1F] font-medium mt-2">{format(new Date(), 'EEEE, MMMM do, yyyy')}</p>
-      </div>
-
-      {/* Top Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <DashboardCard 
-          title="Today's Revenue" 
-          value={`₹${todaysRevenue}`} 
-          icon={IndianRupee} 
-          color="text-green-500"
-          bg="bg-green-500/10"
-        />
-        <DashboardCard 
-          title="Total Orders" 
-          value={todaysOrders.length.toString()} 
-          icon={ShoppingBag} 
-          color="text-blue-500"
-          bg="bg-blue-500/10"
-        />
-        <DashboardCard 
-          title="Pending" 
-          value={pendingCount.toString()} 
-          icon={Clock} 
-          color="text-yellow-500"
-          bg="bg-yellow-500/10"
-        />
-        <DashboardCard 
-          title="Completed" 
-          value={completedCount.toString()} 
-          icon={CheckCircle2} 
-          color="text-[#F58A1F]"
-          bg="bg-[#F58A1F]/10"
-        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -97,8 +65,8 @@ export default function AdminDashboard() {
             </button>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto pb-4">
+            <table className="w-full text-left min-w-[600px]">
               <thead>
                 <tr className="text-[#B5B5B5] border-b border-[#2a2a2a]">
                   <th className="pb-3 font-medium">Order ID</th>
@@ -163,19 +131,6 @@ export default function AdminDashboard() {
   );
 }
 
-function DashboardCard({ title, value, icon: Icon, color, bg }: any) {
-  return (
-    <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-6 flex items-center gap-4 hover:border-[#444] transition-colors">
-      <div className={`w-14 h-14 rounded-full flex items-center justify-center ${bg}`}>
-        <Icon size={28} className={color} />
-      </div>
-      <div>
-        <p className="text-[#B5B5B5] text-sm font-medium">{title}</p>
-        <h3 className="text-2xl font-bold text-white mt-1">{value}</h3>
-      </div>
-    </div>
-  );
-}
 
 function StatusRow({ label, count, color }: any) {
   return (
