@@ -132,6 +132,27 @@ export default function CheckoutPage() {
       // Clear cart
       clearCart();
 
+      // Format WhatsApp message
+      let adminPhone = "917411121806"; // fallback
+      try {
+        const profileSnap = await get(ref(db, 'settings/profile'));
+        if (profileSnap.exists() && profileSnap.val().phone) {
+          const cleaned = profileSnap.val().phone.replace(/\D/g, '');
+          if (cleaned) adminPhone = cleaned;
+        }
+      } catch (e) {
+        console.error("Failed to fetch admin phone", e);
+      }
+
+      const whatsappNumber = adminPhone;
+      const itemsText = items.map(item => `${item.quantity}x ${item.name} ${item.variant ? `(${item.variant})` : ''} - ₹${item.price * item.quantity}`).join('%0A');
+      const text = `*New Order: #${orderId}*%0A*Customer:* ${name.trim()}%0A*Phone:* ${mobile.trim()}%0A*Type:* ${orderType}${orderType === 'Dine In' ? ` (Table ${tableNumber})` : ''}%0A*Items:*%0A${itemsText}%0A*Total:* ₹${subtotal}%0A${specialInstructions ? `*Instructions:* ${specialInstructions}%0A` : ''}`;
+      
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${text}`;
+
+      // Open WhatsApp in a new tab
+      window.open(whatsappUrl, '_blank');
+
       // Redirect to tracking page
       router.push(`/order/${orderId}`);
       

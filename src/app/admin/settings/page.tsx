@@ -21,14 +21,27 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const snapshot = await get(ref(db, 'settings/payment'));
-      if (snapshot.exists()) {
-        const data = snapshot.val();
+      const paymentSnap = await get(ref(db, 'settings/payment'));
+      const profileSnap = await get(ref(db, 'settings/profile'));
+      
+      if (paymentSnap.exists()) {
+        const data = paymentSnap.val();
         setSettings(s => ({ 
           ...s, 
           upiId: data.upiId || "", 
           upiName: data.upiName || "",
           qrImageUrl: data.qrImageUrl || ""
+        }));
+      }
+      
+      if (profileSnap.exists()) {
+        const data = profileSnap.val();
+        setSettings(s => ({
+          ...s,
+          cafeName: data.cafeName || s.cafeName,
+          phone: data.phone || s.phone,
+          email: data.email || s.email,
+          address: data.address || s.address
         }));
       }
     };
@@ -43,6 +56,12 @@ export default function AdminSettingsPage() {
         upiId: settings.upiId,
         upiName: settings.upiName,
         qrImageUrl: settings.qrImageUrl || ""
+      });
+      await set(ref(db, 'settings/profile'), {
+        cafeName: settings.cafeName,
+        phone: settings.phone,
+        email: settings.email,
+        address: settings.address
       });
       alert("Settings saved successfully!");
     } catch (error) {
