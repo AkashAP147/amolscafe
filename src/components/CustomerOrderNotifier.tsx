@@ -90,8 +90,11 @@ export default function CustomerOrderNotifier() {
         return;
       }
 
-      // If status changed to an actionable state
-      if (prevStatus !== currentStatus && ['ACCEPTED', 'PREPARING', 'READY', 'CANCELLED'].includes(currentStatus)) {
+      // If status changed to an actionable state:
+      // USER RULE: Only notify when order is picked/accepted, rejected/cancelled, ready, and completed/delivered!
+      const allowedNotificationStatuses = ['ACCEPTED', 'CANCELLED', 'READY', 'COMPLETED'];
+
+      if (prevStatus !== currentStatus && allowedNotificationStatuses.includes(currentStatus)) {
         knownStatusesRef.current[orderId] = currentStatus;
 
         let title = '';
@@ -99,22 +102,22 @@ export default function CustomerOrderNotifier() {
         let color = '#F58A1F';
 
         if (currentStatus === 'ACCEPTED') {
-          title = 'Order Accepted! 👨‍🍳';
-          message = `Your order #${order.orderNumber || ''} has been accepted by our kitchen.`;
+          title = 'Order Confirmed! 👨‍🍳';
+          message = `Your order #${order.orderNumber || ''} has been picked and accepted by Amol's Cafe!`;
           color = '#F58A1F';
-        } else if (currentStatus === 'PREPARING') {
-          title = 'Order in Preparation! 🔥';
-          message = `Chefs are now preparing your order #${order.orderNumber || ''}.`;
-          color = '#3B82F6';
         } else if (currentStatus === 'READY') {
-          title = 'Order is Ready! 🎉';
-          message = `Your order #${order.orderNumber || ''} is ready for pickup & payment!`;
+          title = 'Order Ready! 🎉';
+          message = `Your order #${order.orderNumber || ''} is hot and ready for pickup!`;
+          color = '#10B981';
+        } else if (currentStatus === 'COMPLETED') {
+          title = 'Order Delivered! ☕';
+          message = "Thank you for visiting Amol's Cafe.";
           color = '#10B981';
         } else if (currentStatus === 'CANCELLED') {
-          title = 'Order Cancelled ⚠️';
+          title = 'Order Rejected ⚠️';
           message = order.cancellationReason
-            ? `Order #${order.orderNumber || ''} cancelled: ${order.cancellationReason}`
-            : `Order #${order.orderNumber || ''} could not be fulfilled.`;
+            ? `Order #${order.orderNumber || ''} rejected: ${order.cancellationReason}`
+            : `Order #${order.orderNumber || ''} could not be accepted.`;
           color = '#EF4444';
         }
 

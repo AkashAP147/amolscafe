@@ -9,10 +9,13 @@ import Link from 'next/link';
 import { Package, Clock, CheckCircle, ChevronRight, Loader2, User, Save, X, Edit2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function MyOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
 
   const [userName, setUserName] = useState('');
   const [userPhone, setUserPhone] = useState('');
@@ -21,14 +24,17 @@ export default function MyOrdersPage() {
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.push('/login?redirect=/my-orders');
-        return;
-      }
-      setUserId(user.uid);
-      if (user.displayName) setUserName(user.displayName);
+    if (authLoading) return; // Wait for initial auth restoration
 
+    if (!user) {
+      router.push('/login?redirect=/my-orders');
+      return;
+    }
+
+    setUserId(user.uid);
+    if (user.displayName) setUserName(user.displayName);
+
+    const loadProfile = async () => {
       try {
         const userRef = ref(db, `users/${user.uid}`);
         const userSnapshot = await get(userRef);
@@ -38,10 +44,12 @@ export default function MyOrdersPage() {
       } catch (err) {
         console.warn('Could not fetch user phone number (permission denied).', err);
       }
+    };
+    loadProfile();
 
-      // Fetch orders for this user
-      const ordersRef = ref(db, 'orders');
-      const userOrdersQuery = query(ordersRef, orderByChild('userId'), equalTo(user.uid));
+    // Fetch orders for this user
+    const ordersRef = ref(db, 'orders');
+    const userOrdersQuery = query(ordersRef, orderByChild('userId'), equalTo(user.uid));
       
       const unsubscribeData = onValue(userOrdersQuery, (snapshot) => {
         const data = snapshot.val();
@@ -57,10 +65,7 @@ export default function MyOrdersPage() {
       });
 
       return () => unsubscribeData();
-    });
-
-    return () => unsubscribeAuth();
-  }, [router]);
+  }, [user, authLoading, router]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

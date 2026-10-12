@@ -7,7 +7,7 @@ import { useCartStore } from '@/store/useCartStore';
 import { Search, Plus, Minus, Filter, ShoppingBag, ChevronRight, Sparkles, Flame, Star, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -28,7 +28,6 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [user, setUser] = useState<any>(null);
   const router = useRouter();
   
   const addItem = useCartStore((state) => state.addItem);
@@ -73,12 +72,7 @@ export default function MenuPage() {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribeAuth();
-  }, []);
+  const { user } = useAuth();
 
   const categories = ['All', ...Array.from(new Set(menuItems.map(item => item.category)))];
 

@@ -10,6 +10,7 @@ import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { ArrowLeft, CheckCircle2, Loader2, Utensils, ShoppingBag, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/context/AuthContext';
 
 const TIME_PRESETS = [
   'ASAP (15-20 mins)',
@@ -36,12 +37,14 @@ export default function CheckoutPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
   const [userId, setUserId] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (authLoading) return; // Wait for cached/restored auth state
+
+    const fetchUserData = async () => {
       if (user) {
         setUserId(user.uid);
         if (user.displayName) setName(user.displayName);
@@ -58,10 +61,10 @@ export default function CheckoutPage() {
       } else {
         router.push('/login?redirect=/checkout');
       }
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, [router]);
+    };
+
+    fetchUserData();
+  }, [user, authLoading, router]);
 
   const subtotal = getCartTotal();
 
@@ -82,14 +85,22 @@ export default function CheckoutPage() {
       const result = await runTransaction(counterRef, (currentVal) => {
         return (currentVal || 1000) + 1;
       });
-      if (result.committed) {
+      if (result.committed && result.snapshot.exists()) {
         return `AC${result.snapshot.val()}`;
       }
     } catch (err) {
-      console.warn('Failed to increment order counter transactionally, using timestamp fallback', err);
+      console.warn('Failed to increment order counter transactionally, attempting fallback read', err);
     }
-    // Fallback if offline/permission issue
-    return `AC${Math.floor(1001 + Math.random() * 8999)}`;
+
+    try {
+      // Fallback: Read current orders count so numbering remains sequential
+      const ordersSnap = await get(ref(db, 'orders'));
+      const count = ordersSnap.exists() ? Object.keys(ordersSnap.val()).length : 0;
+      const nextNum = 1001 + count;
+      return `AC${nextNum}`;
+    } catch (e) {
+      return `AC1001`;
+    }
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {

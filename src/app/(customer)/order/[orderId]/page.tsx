@@ -12,11 +12,12 @@ import Link from 'next/link';
 
 import { Suspense } from 'react';
 
+import { useAuth } from '@/context/AuthContext';
+
 function OrderTracker() {
   const { orderId } = useParams();
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
@@ -30,19 +31,16 @@ function OrderTracker() {
   } | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setAuthLoading(false);
-      if (!user) {
-        router.push(`/login?redirect=/order/${orderId}`);
-      }
-    });
+    // Only redirect to login if auth has finished loading and there is indeed no user
+    if (!authLoading && !currentUser) {
+      router.push(`/login?redirect=/order/${orderId}`);
+    }
+  }, [authLoading, currentUser, orderId, router]);
 
-    return () => unsubscribe();
-  }, [orderId, router]);
-
+  const [hasNotifiedAccepted, setHasNotifiedAccepted] = useState(false);
   const [hasNotifiedReady, setHasNotifiedReady] = useState(false);
   const [hasNotifiedCancelled, setHasNotifiedCancelled] = useState(false);
+  const [hasNotifiedCompleted, setHasNotifiedCompleted] = useState(false);
 
   // Trigger alert safely across all devices (Android, iOS Safari, desktop)
   const triggerDeviceAlert = (title: string, message: string, type: 'ready' | 'cancelled') => {
@@ -87,14 +85,12 @@ function OrderTracker() {
         typeof Notification === 'function' &&
         Notification.permission === 'granted'
       ) {
-        // Wrap constructor in try to catch Android mobile Chrome illegal constructor error
         try {
           new Notification(title, {
             body: message,
             icon: '/logo.png'
           });
         } catch (err) {
-          // Fallback: try ServiceWorker registration if present
           if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
             navigator.serviceWorker.ready.then(reg => {
               reg.showNotification(title, {
@@ -109,6 +105,15 @@ function OrderTracker() {
   };
 
   useEffect(() => {
+    if (order?.orderStatus === 'ACCEPTED' && !hasNotifiedAccepted) {
+      triggerDeviceAlert(
+        "Order Confirmed! 👨‍🍳",
+        "Your order has been picked and accepted by Amol's Cafe!",
+        'ready'
+      );
+      setHasNotifiedAccepted(true);
+    }
+
     if (order?.orderStatus === 'READY' && !hasNotifiedReady) {
       triggerDeviceAlert(
         "Order Ready! 🎉",
@@ -118,15 +123,24 @@ function OrderTracker() {
       setHasNotifiedReady(true);
     }
 
+    if (order?.orderStatus === 'COMPLETED' && !hasNotifiedCompleted) {
+      triggerDeviceAlert(
+        "Order Delivered! ☕",
+        "Thank you for visiting Amol's Cafe.",
+        'ready'
+      );
+      setHasNotifiedCompleted(true);
+    }
+
     if (order?.orderStatus === 'CANCELLED' && !hasNotifiedCancelled) {
       triggerDeviceAlert(
-        "Order Cancelled",
+        "Order Rejected ⚠️",
         order.cancellationReason || "Sorry, your order could not be accepted.",
         'cancelled'
       );
       setHasNotifiedCancelled(true);
     }
-  }, [order?.orderStatus, order?.cancellationReason, hasNotifiedReady, hasNotifiedCancelled]);
+  }, [order?.orderStatus, order?.cancellationReason, hasNotifiedAccepted, hasNotifiedReady, hasNotifiedCompleted, hasNotifiedCancelled]);
 
   useEffect(() => {
     if (!orderId || !currentUser) return;
@@ -398,18 +412,6 @@ function OrderTracker() {
                   const cleanUpiQuery = `pa=${rawUpiId}&pn=${cleanUpiName}&am=${formattedAmt}&cu=INR&tn=${cleanTn}`;
                   const standardUpiUrl = `upi://pay?${cleanUpiQuery}`;
 
-                  // Official Android Intent URLs for specific apps to prevent instant crashes
-                  const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent || '');
-                  const phonePeUrl = isAndroid
-                    ? `intent://pay?${cleanUpiQuery}#Intent;scheme=upi;package=com.phonepe.app;end`
-                    : standardUpiUrl;
-                  const gpayUrl = isAndroid
-                    ? `intent://pay?${cleanUpiQuery}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
-                    : standardUpiUrl;
-                  const paytmUrl = isAndroid
-                    ? `intent://pay?${cleanUpiQuery}#Intent;scheme=upi;package=net.one97.paytm;end`
-                    : standardUpiUrl;
-
                   const handleCopyUpi = () => {
                     if (!rawUpiId) return;
                     try {
@@ -474,58 +476,17 @@ function OrderTracker() {
                         )}
                       </div>
 
-                      {/* Dedicated App Buttons for Mobile */}
-                      <div className="w-full space-y-2.5">
-                        <p className="text-xs text-[#888] font-medium text-left flex items-center gap-1.5">
-                          <Smartphone size={14} className="text-[#F58A1F]" /> Pay Directly via Mobile App:
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          {/* PhonePe */}
-                          <a
-                            href={phonePeUrl}
-                            className="bg-[#5f259f]/90 hover:bg-[#5f259f] text-white py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-[#783dbd] transition-all transform active:scale-95 shadow-md shadow-[#5f259f]/20"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-white"></span>
-                            PhonePe
-                          </a>
-
-                          {/* Google Pay */}
-                          <a
-                            href={gpayUrl}
-                            className="bg-[#1a73e8]/90 hover:bg-[#1a73e8] text-white py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-[#3b8af5] transition-all transform active:scale-95 shadow-md shadow-[#1a73e8]/20"
-                          >
-                            <span className="w-2 h-2 rounded-full bg-white"></span>
-                            Google Pay
-                          </a>
-
-                          {/* Paytm */}
-                          <a
-                            href={paytmUrl}
-                            className="bg-[#002e6e]/90 hover:bg-[#002e6e] text-[#00b9f5] border border-[#00b9f5]/40 py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all transform active:scale-95"
-                          >
-                            Paytm
-                          </a>
-
-                          {/* Generic UPI App */}
-                          <a
-                            href={standardUpiUrl}
-                            className="bg-[#242424] hover:bg-[#2d2d2d] text-white border border-[#3a3a3a] py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all transform active:scale-95"
-                          >
-                            Any UPI App
-                          </a>
-                        </div>
-
-                        {/* Primary Big Button */}
+                      {/* Primary Action Button */}
+                      <div className="w-full space-y-3">
                         <a 
                           href={standardUpiUrl}
-                          className="block w-full bg-[#F58A1F] hover:bg-[#e07a1b] text-white py-3.5 rounded-xl font-bold transition-all text-sm shadow-lg shadow-[#F58A1F]/20"
+                          className="block w-full bg-[#F58A1F] hover:bg-[#e07a1b] text-white py-4 rounded-xl font-bold transition-all text-base shadow-lg shadow-[#F58A1F]/25 flex items-center justify-center gap-2 transform active:scale-95"
                         >
-                          Pay ₹{order.total} with UPI
+                          <Smartphone size={18} /> Pay ₹{order.total} with UPI App
                         </a>
 
                         <p className="text-[11px] text-[#888] leading-tight px-1 text-center">
-                          If your default app closes or has no linked bank account, tap <strong className="text-white">PhonePe</strong>, <strong className="text-white">Google Pay</strong>, or tap <strong className="text-[#F58A1F]">Copy ID</strong> to pay directly.
+                          Tap to pay via any installed UPI app (GPay, PhonePe, Paytm), or tap <strong className="text-[#F58A1F]">Copy ID</strong> above.
                         </p>
                         
                         <div className="relative flex items-center py-2">

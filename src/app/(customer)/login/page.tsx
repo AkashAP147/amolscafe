@@ -30,10 +30,10 @@ export default function CustomerLogin() {
       }
 
       if (email.toLowerCase() === 'amolscafe@gmail.com') {
-        router.push('/admin/dashboard');
+        router.replace('/admin/dashboard');
       } else {
         const redirect = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('redirect') || '/menu' : '/menu';
-        router.push(redirect);
+        router.replace(redirect);
       }
     } catch (err: any) {
       console.error(err);

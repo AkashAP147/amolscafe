@@ -5,25 +5,17 @@ import { usePathname } from 'next/navigation';
 import { ShoppingCart, Menu, X, User, LogOut, FileText, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/useCartStore';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const cartCount = useCartStore((state) => state.getCartCount());
-  const [user, setUser] = useState<any>(null);
+  const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsubscribe();
-  }, []);
-
   const handleLogout = async () => {
-    await signOut(auth);
+    await logout();
     setShowDropdown(false);
   };
 
@@ -36,16 +28,55 @@ export default function Navbar() {
 
   const homeHref = user ? '/menu' : '/';
 
+  // Handle physical / browser back button so pressing back closes the mobile drawer instead of leaving the page
+  const openMobileMenu = () => {
+    setIsMobileMenuOpen(true);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ menuOpen: true }, '');
+    }
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isMobileMenuOpen]);
+
+  // Close menu on pathname change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   return (
     <nav className="sticky top-0 z-50 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-[#2a2a2a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
-          {/* Logo */}
+          {/* Mobile Left: Menu Toggle Button */}
+          <div className="flex md:hidden items-center">
+            <button
+              onClick={() => isMobileMenuOpen ? closeMobileMenu() : openMobileMenu()}
+              className="text-[#B5B5B5] hover:text-white p-2 rounded-xl border border-[#2a2a2a] bg-[#161616] focus:outline-none focus:border-[#F58A1F] transition-colors"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+
+          {/* Logo (Centered or aligned next to menu button on mobile, left on desktop) */}
           <div className="flex-shrink-0 flex items-center">
             <Link href={homeHref} className="flex items-center gap-2 z-50">
               <img src="/logo.png" alt="Amols Cafe Logo" className="h-10 w-auto object-contain shrink-0" />
-              <span className="font-bold text-2xl tracking-tight text-white hidden sm:block">
+              <span className="font-bold text-2xl tracking-tight text-white block">
                 <span className="text-[#F58A1F]">Amol's</span> Cafe
               </span>
             </Link>
@@ -70,9 +101,8 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Icons: Cart & Profile */}
+          {/* Icons: Cart & Profile (Desktop) */}
           <div className="hidden md:flex items-center space-x-6">
-            
             {user ? (
               <div className="relative">
                 <button 
@@ -126,95 +156,134 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center gap-4">
-            {user && (
-              <Link href="/cart" className="relative text-white">
-                <ShoppingCart size={24} />
+          {/* Mobile Right: Cart icon & Sign In */}
+          <div className="md:hidden flex items-center gap-3">
+            {user ? (
+              <Link href="/cart" className="relative text-white p-2 rounded-xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center">
+                <ShoppingCart size={22} />
                 {cartCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-[#F58A1F] text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  <span className="absolute -top-1.5 -right-1.5 bg-[#F58A1F] text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                     {cartCount}
                   </span>
                 )}
               </Link>
+            ) : (
+              <Link href="/login" className="text-xs font-bold text-white bg-[#F58A1F] px-3 py-2 rounded-xl">
+                Sign In
+              </Link>
             )}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-[#B5B5B5] hover:text-white focus:outline-none"
-            >
-              {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Drawer Backdrop & Left Slide-out Panel */}
       {isMobileMenuOpen && (
-        <div className="md:hidden bg-[#161616] border-b border-[#2a2a2a] absolute w-full left-0">
-          <div className="px-4 pt-4 pb-6 space-y-1">
-            
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div 
+            onClick={closeMobileMenu}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+            aria-hidden="true"
+          />
+
+          {/* Drawer coming from the left */}
+          <div className="relative w-4/5 max-w-xs bg-[#161616] border-r border-[#2a2a2a] h-full shadow-2xl flex flex-col z-50 animate-in slide-in-from-left duration-300">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
+              <div className="flex items-center gap-2">
+                <img src="/logo.png" alt="Amols Cafe Logo" className="h-8 w-auto object-contain" />
+                <span className="font-bold text-lg text-white">
+                  <span className="text-[#F58A1F]">Amol's</span> Cafe
+                </span>
+              </div>
+              <button
+                onClick={closeMobileMenu}
+                className="p-1.5 rounded-lg text-[#B5B5B5] hover:text-white hover:bg-[#242424] transition-colors"
+                aria-label="Close menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* User profile snippet */}
             {user && (
-              <div className="px-3 py-4 mb-2 border-b border-[#2a2a2a]">
-                <p className="text-white font-medium">{user.displayName || 'Welcome'}</p>
-                <p className="text-xs text-[#B5B5B5]">{user.email}</p>
+              <div className="px-5 py-4 border-b border-[#2a2a2a] bg-[#121212]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center text-[#F58A1F] font-bold">
+                    <User size={20} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-white font-bold text-sm truncate">{user.displayName || 'Customer'}</p>
+                    <p className="text-xs text-[#888] truncate">{user.email}</p>
+                  </div>
+                </div>
               </div>
             )}
 
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={`block px-3 py-3 rounded-xl text-base font-medium ${
-                  pathname === link.href
-                    ? 'text-[#F58A1F] bg-[#0B0B0B]'
-                    : 'text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]'
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
-            
-            {user ? (
-              <>
+            {/* Links list */}
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+              {navLinks.map((link) => (
                 <Link
-                  href="/my-orders"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]"
+                  key={link.name}
+                  href={link.href}
+                  onClick={closeMobileMenu}
+                  className={`block px-3 py-3 rounded-xl text-base font-medium transition-colors ${
+                    pathname === link.href
+                      ? 'text-[#F58A1F] bg-[#0B0B0B] font-bold'
+                      : 'text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]'
+                  }`}
                 >
-                  My Orders
+                  {link.name}
                 </Link>
-                <Link
-                  href="/about"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]"
-                >
-                  About & Contact
-                </Link>
-                {user?.email === 'amolscafe@gmail.com' && (
+              ))}
+              
+              {user ? (
+                <>
                   <Link
-                    href="/admin/dashboard"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block px-3 py-3 rounded-xl text-base font-medium text-[#F58A1F] hover:bg-[#0B0B0B]"
+                    href="/my-orders"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B] transition-colors"
                   >
-                    Admin Portal
+                    <FileText size={18} /> My Orders
                   </Link>
-                )}
-                <button
-                  onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}
-                  className="w-full text-left px-3 py-3 rounded-xl text-base font-medium text-red-500 hover:text-red-400 hover:bg-[#0B0B0B]"
+                  <Link
+                    href="/about"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B] transition-colors"
+                  >
+                    <FileText size={18} /> About & Contact
+                  </Link>
+                  {user?.email === 'amolscafe@gmail.com' && (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={closeMobileMenu}
+                      className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-base font-medium text-[#F58A1F] hover:bg-[#0B0B0B] transition-colors"
+                    >
+                      <Shield size={18} /> Admin Portal
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={closeMobileMenu}
+                  className="block px-3 py-3.5 rounded-xl text-base font-bold text-white bg-[#F58A1F] hover:bg-[#e07a1b] text-center mt-4 transition-colors shadow-lg shadow-[#F58A1F]/20"
                 >
-                  Sign Out
+                  Sign In / Create Account
+                </Link>
+              )}
+            </div>
+
+            {/* Footer / Sign Out */}
+            {user && (
+              <div className="p-4 border-t border-[#2a2a2a] bg-[#121212]">
+                <button
+                  onClick={() => { handleLogout(); closeMobileMenu(); }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-bold text-red-500 hover:text-white hover:bg-red-500/20 border border-red-500/30 transition-colors"
+                >
+                  <LogOut size={16} /> Sign Out
                 </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-3 py-3 rounded-xl text-base font-bold text-white bg-[#F58A1F] hover:bg-[#e07a1b] text-center mt-4"
-              >
-                Sign In / Create Account
-              </Link>
+              </div>
             )}
           </div>
         </div>

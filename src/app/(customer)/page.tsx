@@ -8,23 +8,22 @@ import { db, auth } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
   const [heroImage, setHeroImage] = useState<string | null>(null);
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        if (user.email && user.email.toLowerCase() === 'amolscafe@gmail.com') {
-          router.replace('/admin/dashboard');
-        } else {
-          router.replace('/menu');
-        }
+    if (user) {
+      if (user.email && user.email.toLowerCase() === 'amolscafe@gmail.com') {
+        router.replace('/admin/dashboard');
+      } else {
+        router.replace('/menu');
       }
-    });
-    return () => unsubscribeAuth();
-  }, [router]);
+    }
+  }, [user, router]);
 
   useEffect(() => {
     const heroRef = ref(db, 'settings/heroImage');

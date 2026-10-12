@@ -24,6 +24,7 @@ export const metadata: Metadata = {
 };
 
 import PWAInitializer from "@/components/PWAInitializer";
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -38,8 +39,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="min-h-full flex flex-col">
-        <PWAInitializer />
-        {children}
+        <AuthProvider>
+          <PWAInitializer />
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
