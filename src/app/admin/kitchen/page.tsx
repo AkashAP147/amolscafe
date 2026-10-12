@@ -128,18 +128,21 @@ export default function KitchenDashboard() {
   useEffect(() => {
     if (pending.length > previousPendingCount.current) {
       try {
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification === 'function' && Notification.permission === 'granted') {
           new Notification("New Order Received!", {
             body: `You have ${pending.length - previousPendingCount.current} new order(s) waiting to be accepted.`,
             icon: "/logo.png"
           });
-          // Play a simple beep sound safely
-          const audio = new Audio('/bell.mp3'); 
-          audio.play().catch(e => console.log('Audio play failed', e));
         }
       } catch (err) {
         console.warn("Could not show notification", err);
       }
+
+      try {
+        // Play a simple beep sound safely
+        const audio = new Audio('/bell.mp3'); 
+        audio.play().catch(e => console.log('Audio play failed', e));
+      } catch (err) {}
     }
     previousPendingCount.current = pending.length;
   }, [pending.length]);

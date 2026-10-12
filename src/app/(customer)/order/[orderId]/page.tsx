@@ -33,8 +33,15 @@ function OrderTracker() {
   }, [orderId, router]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      Notification.requestPermission();
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification.requestPermission === 'function') {
+        const res = Notification.requestPermission();
+        if (res && typeof res.catch === 'function') {
+          res.catch(() => {});
+        }
+      }
+    } catch (e) {
+      // Ignore notification errors on mobile browsers
     }
   }, []);
 
@@ -43,23 +50,33 @@ function OrderTracker() {
 
   useEffect(() => {
     if (order?.orderStatus === 'READY' && !hasNotifiedReady) {
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification("Order Ready!", {
-          body: `Your order is ready for pickup at the counter!`,
-          icon: "/logo.png"
-        });
-        const audio = new Audio('/bell.mp3');
-        audio.play().catch(e => console.log('Audio play failed', e));
+      try {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification("Order Ready!", {
+            body: `Your order is ready for pickup at the counter!`,
+            icon: "/logo.png"
+          });
+        }
+      } catch (e) {
+        // Safe fallback
       }
+      try {
+        const audio = new Audio('/bell.mp3');
+        audio.play().catch(() => {});
+      } catch (e) {}
       setHasNotifiedReady(true);
     }
 
     if (order?.orderStatus === 'CANCELLED' && !hasNotifiedCancelled) {
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-        new Notification("Order Cancelled", {
-          body: order.cancellationReason || "Sorry, your order could not be accepted.",
-          icon: "/logo.png"
-        });
+      try {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          new Notification("Order Cancelled", {
+            body: order.cancellationReason || "Sorry, your order could not be accepted.",
+            icon: "/logo.png"
+          });
+        }
+      } catch (e) {
+        // Safe fallback
       }
       setHasNotifiedCancelled(true);
     }
