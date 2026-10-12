@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { ref, onValue, update } from 'firebase/database';
-import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag, XCircle, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -23,6 +23,7 @@ function OrderTracker() {
   }, []);
 
   const [hasNotifiedReady, setHasNotifiedReady] = useState(false);
+  const [hasNotifiedCancelled, setHasNotifiedCancelled] = useState(false);
 
   useEffect(() => {
     if (order?.orderStatus === 'READY' && !hasNotifiedReady) {
@@ -36,7 +37,17 @@ function OrderTracker() {
       }
       setHasNotifiedReady(true);
     }
-  }, [order?.orderStatus, hasNotifiedReady]);
+
+    if (order?.orderStatus === 'CANCELLED' && !hasNotifiedCancelled) {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification("Order Cancelled", {
+          body: order.cancellationReason || "Sorry, your order could not be accepted.",
+          icon: "/logo.png"
+        });
+      }
+      setHasNotifiedCancelled(true);
+    }
+  }, [order?.orderStatus, order?.cancellationReason, hasNotifiedReady, hasNotifiedCancelled]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -110,11 +121,19 @@ function OrderTracker() {
           <motion.div 
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="w-20 h-20 bg-[#F58A1F]/10 rounded-full flex items-center justify-center mx-auto mb-6"
+            className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
+              order.orderStatus === 'CANCELLED' ? 'bg-red-500/10 border border-red-500/30' : 'bg-[#F58A1F]/10'
+            }`}
           >
-            <CheckCircle2 size={40} className="text-[#F58A1F]" />
+            {order.orderStatus === 'CANCELLED' ? (
+              <XCircle size={40} className="text-red-500" />
+            ) : (
+              <CheckCircle2 size={40} className="text-[#F58A1F]" />
+            )}
           </motion.div>
-          <h1 className="text-4xl font-bold text-white mb-2">Order Confirmed!</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">
+            {order.orderStatus === 'CANCELLED' ? 'Order Cancelled' : 'Order Confirmed!'}
+          </h1>
           <p className="text-xl text-[#B5B5B5]">Order #{order.orderId}</p>
         </div>
 
@@ -123,9 +142,22 @@ function OrderTracker() {
             <h2 className="text-xl font-bold text-white mb-8">Live Status</h2>
             
             {order.orderStatus === 'CANCELLED' ? (
-              <div className="text-center p-6 bg-red-500/10 border border-red-500/50 rounded-xl">
-                <h3 className="text-red-500 font-bold text-xl mb-2">Order Cancelled</h3>
-                <p className="text-[#B5B5B5]">This order has been cancelled. Please contact the cafe if you have any questions.</p>
+              <div className="p-6 bg-red-500/10 border border-red-500/30 rounded-xl space-y-4">
+                <div className="flex items-center gap-2.5 text-red-400 font-bold text-lg">
+                  <AlertTriangle size={20} className="shrink-0" />
+                  <span>Order Could Not Be Accepted</span>
+                </div>
+                
+                {order.cancellationReason && (
+                  <div className="bg-[#0B0B0B] border border-red-500/20 rounded-lg p-3.5">
+                    <p className="text-xs text-[#888] uppercase tracking-wider mb-1 font-semibold">Reason from Kitchen:</p>
+                    <p className="text-white text-sm font-medium">{order.cancellationReason}</p>
+                  </div>
+                )}
+                
+                <p className="text-xs text-[#B5B5B5] leading-relaxed">
+                  We apologize for the inconvenience. Any pending payment will not be charged. You can browse our menu and place a new order.
+                </p>
               </div>
             ) : (
               <div className="relative">

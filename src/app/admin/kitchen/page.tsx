@@ -3,15 +3,30 @@
 import { useEffect, useState, useRef } from 'react';
 import { db } from '@/lib/firebase';
 import { ref, onValue, update } from 'firebase/database';
-import { ChefHat, CheckCircle2, Clock, PackageCheck, AlertCircle } from 'lucide-react';
+import { ChefHat, CheckCircle2, Clock, PackageCheck, AlertCircle, XCircle, X, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatDistanceToNow } from 'date-fns';
+
+const PREDEFINED_REJECTION_REASONS = [
+  'Item out of stock / Ingredients unavailable',
+  'Kitchen is currently overloaded',
+  'Requested items unavailable right now',
+  'Closing time / Kitchen closed',
+  'Unable to fulfill special customization request'
+];
 
 export default function KitchenDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY'>('PENDING');
   const previousPendingCount = useRef(0);
+
+  // Reject modal state
+  const [rejectingOrder, setRejectingOrder] = useState<any | null>(null);
+  const [selectedReason, setSelectedReason] = useState(PREDEFINED_REJECTION_REASONS[0]);
+  const [customReason, setCustomReason] = useState('');
+  const [isCustomReason, setIsCustomReason] = useState(false);
+  const [isSubmittingReject, setIsSubmittingReject] = useState(false);
 
   useEffect(() => {
     // Request notification permission safely (Safari iOS might throw without user gesture)
@@ -53,6 +68,54 @@ export default function KitchenDashboard() {
     }
   };
 
+  const handleOpenRejectModal = (order: any) => {
+    setRejectingOrder(order);
+    setSelectedReason(PREDEFINED_REJECTION_REASONS[0]);
+    setCustomReason('');
+    setIsCustomReason(false);
+  };
+
+  const handleCloseRejectModal = () => {
+    setRejectingOrder(null);
+    setCustomReason('');
+    setIsCustomReason(false);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectingOrder) return;
+    setIsSubmittingReject(true);
+
+    const finalReason = isCustomReason 
+      ? (customReason.trim() || 'Sorry, we are unable to process this order at this time.')
+      : selectedReason;
+
+    try {
+      const updates: any = {};
+      updates[`orders/${rejectingOrder.orderId}/orderStatus`] = 'CANCELLED';
+      updates[`orders/${rejectingOrder.orderId}/cancellationReason`] = finalReason;
+      updates[`orders/${rejectingOrder.orderId}/cancelledBy`] = 'Kitchen';
+      updates[`orders/${rejectingOrder.orderId}/cancelledAt`] = Date.now();
+      updates[`orders/${rejectingOrder.orderId}/updatedAt`] = Date.now();
+
+      await update(ref(db), updates);
+
+      // Optionally offer WhatsApp notification to customer if phone number exists
+      const phone = rejectingOrder.phone ? rejectingOrder.phone.replace(/\D/g, '') : '';
+      if (phone) {
+        const customerNumber = phone.length === 10 ? `91${phone}` : phone;
+        const msg = `*Update on Order #${rejectingOrder.orderId} - Amol's Cafe*\n\nDear ${rejectingOrder.customerName || 'Customer'},\nWe regret to inform you that your order could not be accepted.\n\n*Reason:* ${finalReason}\n\nWe apologize for the inconvenience and hope to serve you again soon!`;
+        const waUrl = `https://wa.me/${customerNumber}?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl, '_blank');
+      }
+
+      handleCloseRejectModal();
+    } catch (err) {
+      console.error('Failed to reject order:', err);
+    } finally {
+      setIsSubmittingReject(false);
+    }
+  };
+
   const activeOrders = orders.filter(o => 
     !['COMPLETED', 'CANCELLED'].includes(o.orderStatus)
   );
@@ -90,7 +153,7 @@ export default function KitchenDashboard() {
   }
 
   return (
-    <div className="p-4 md:p-6 h-full flex flex-col">
+    <div className="p-4 md:p-6 h-full flex flex-col relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-3">
@@ -124,6 +187,7 @@ export default function KitchenDashboard() {
             actionLabel="ACCEPT ORDER"
             actionColor="bg-blue-600 hover:bg-blue-500"
             onAction={(id: string) => updateOrderStatus(id, 'ACCEPTED')}
+            onReject={handleOpenRejectModal}
           />
         </div>
 
@@ -137,6 +201,7 @@ export default function KitchenDashboard() {
             actionLabel="START PREPARING"
             actionColor="bg-yellow-600 hover:bg-yellow-500"
             onAction={(id: string) => updateOrderStatus(id, 'PREPARING')}
+            onReject={handleOpenRejectModal}
           />
         </div>
 
@@ -150,6 +215,7 @@ export default function KitchenDashboard() {
             actionLabel="MARK READY"
             actionColor="bg-[#F58A1F] hover:bg-[#e07a1b]"
             onAction={(id: string) => updateOrderStatus(id, 'READY')}
+            onReject={handleOpenRejectModal}
           />
         </div>
 
@@ -167,11 +233,136 @@ export default function KitchenDashboard() {
         </div>
 
       </div>
+
+      {/* REJECT ORDER MODAL */}
+      <AnimatePresence>
+        {rejectingOrder && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-[#161616] border border-[#2a2a2a] rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl"
+            >
+              {/* Modal Header */}
+              <div className="p-6 border-b border-[#2a2a2a] flex justify-between items-center bg-[#0B0B0B]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500">
+                    <XCircle size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Reject Order #{rejectingOrder.orderId}</h3>
+                    <p className="text-xs text-[#888]">Customer: {rejectingOrder.customerName || 'Guest'} • {rejectingOrder.phone || 'No phone'}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseRejectModal}
+                  className="p-2 rounded-lg text-[#888] hover:text-white hover:bg-[#2a2a2a] transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-[#B5B5B5] mb-2.5">
+                    Select Predefined Reason:
+                  </label>
+                  <div className="space-y-2">
+                    {PREDEFINED_REJECTION_REASONS.map((reason) => {
+                      const isSelected = !isCustomReason && selectedReason === reason;
+                      return (
+                        <button
+                          key={reason}
+                          type="button"
+                          onClick={() => {
+                            setSelectedReason(reason);
+                            setIsCustomReason(false);
+                          }}
+                          className={`w-full text-left p-3 rounded-xl border text-sm transition-all flex items-center justify-between ${
+                            isSelected
+                              ? 'border-red-500 bg-red-500/10 text-white font-medium'
+                              : 'border-[#2a2a2a] bg-[#0B0B0B] text-[#B5B5B5] hover:border-[#444]'
+                          }`}
+                        >
+                          <span>{reason}</span>
+                          {isSelected && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 ml-2" />}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomReason(true)}
+                      className={`w-full text-left p-3 rounded-xl border text-sm transition-all flex items-center justify-between ${
+                        isCustomReason
+                          ? 'border-red-500 bg-red-500/10 text-white font-medium'
+                          : 'border-[#2a2a2a] bg-[#0B0B0B] text-[#B5B5B5] hover:border-[#444]'
+                      }`}
+                    >
+                      <span>Custom message / specific explanation</span>
+                      {isCustomReason && <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 ml-2" />}
+                    </button>
+                  </div>
+                </div>
+
+                {isCustomReason && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                  >
+                    <label className="block text-sm font-medium text-[#B5B5B5] mb-1.5">
+                      Write Custom Reason to Customer:
+                    </label>
+                    <textarea
+                      value={customReason}
+                      onChange={(e) => setCustomReason(e.target.value)}
+                      placeholder="e.g. Blue Mojito syrup finished and burger patties out of stock..."
+                      rows={3}
+                      className="w-full bg-[#0B0B0B] border border-[#2a2a2a] text-white rounded-xl p-3 text-sm focus:outline-none focus:border-red-500 transition-colors resize-none"
+                    />
+                  </motion.div>
+                )}
+
+                <div className="bg-[#0B0B0B] p-3.5 rounded-xl border border-[#2a2a2a] text-xs text-[#888] space-y-1">
+                  <p className="text-[#B5B5B5] font-semibold flex items-center gap-1.5">
+                    <Send size={14} className="text-[#F58A1F]" /> Customer Notification
+                  </p>
+                  <p>
+                    The order status will update to <span className="text-red-400 font-bold">CANCELLED</span> on the customer&apos;s live tracking screen with this reason. If customer phone is present, a WhatsApp rejection notification will also be prepared.
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-[#2a2a2a] flex gap-3 justify-end bg-[#0B0B0B]">
+                <button
+                  type="button"
+                  onClick={handleCloseRejectModal}
+                  disabled={isSubmittingReject}
+                  className="px-5 py-2.5 rounded-xl text-sm font-medium text-[#B5B5B5] hover:text-white bg-[#222] hover:bg-[#2a2a2a] transition-colors"
+                >
+                  Keep Order
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmReject}
+                  disabled={isSubmittingReject}
+                  className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-red-600 hover:bg-red-500 disabled:opacity-50 transition-colors flex items-center gap-2 shadow-lg shadow-red-600/20"
+                >
+                  {isSubmittingReject ? 'Rejecting...' : 'Reject & Notify Customer'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function KitchenColumn({ title, count, color, orders, actionLabel, actionColor, onAction }: any) {
+function KitchenColumn({ title, count, color, orders, actionLabel, actionColor, onAction, onReject }: any) {
   return (
     <div className="flex flex-col h-full bg-[#161616] rounded-2xl border border-[#2a2a2a] overflow-hidden">
       <div className="p-4 border-b border-[#2a2a2a] flex justify-between items-center bg-[#0B0B0B]/50">
@@ -243,12 +434,23 @@ function KitchenColumn({ title, count, color, orders, actionLabel, actionColor, 
                 </div>
               )}
 
-              <button
-                onClick={() => onAction(order.orderId)}
-                className={`w-full py-3 rounded-lg text-white font-bold transition-colors ${actionColor}`}
-              >
-                {actionLabel}
-              </button>
+              <div className="flex gap-2">
+                {onReject && (
+                  <button
+                    onClick={() => onReject(order)}
+                    className="px-3 py-3 rounded-lg text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs font-bold transition-colors flex items-center justify-center gap-1"
+                    title="Reject order"
+                  >
+                    <XCircle size={16} /> REJECT
+                  </button>
+                )}
+                <button
+                  onClick={() => onAction(order.orderId)}
+                  className={`flex-1 py-3 rounded-lg text-white font-bold transition-colors ${actionColor}`}
+                >
+                  {actionLabel}
+                </button>
+              </div>
             </motion.div>
           ))}
         </AnimatePresence>

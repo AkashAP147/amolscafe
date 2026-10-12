@@ -212,6 +212,11 @@ export default function MyOrdersPage() {
                         <span>•</span>
                         <span className="font-medium text-white">₹{order.total}</span>
                       </div>
+                      {order.orderStatus === 'CANCELLED' && order.cancellationReason && (
+                        <p className="text-xs text-red-400 mt-2 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-lg inline-block">
+                          Cancelled: {order.cancellationReason}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2 text-[#F58A1F] text-sm font-bold md:opacity-0 md:group-hover:opacity-100 transition-opacity">
