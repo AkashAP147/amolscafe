@@ -10,15 +10,37 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Amol's Cafe | Good Food. Great Coffee.",
   description: "Premium cafe ordering system for Amol's Cafe. Order your favorite pizza, burgers, sandwiches and coffee online.",
+  manifest: "/manifest.json",
+  themeColor: "#F58A1F",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Amols Cafe",
+  },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+import PWAInitializer from "@/components/PWAInitializer";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       className={`${inter.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#F58A1F" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <PWAInitializer />
+        {children}
+      </body>
     </html>
   );
 }

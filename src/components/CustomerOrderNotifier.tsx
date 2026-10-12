@@ -141,18 +141,30 @@ export default function CustomerOrderNotifier() {
           color,
         });
 
-        // Safe device notification fallback
+        // Safe background device notification (works when outside the browser via Service Worker)
         try {
-          if (
-            typeof window !== 'undefined' &&
-            'Notification' in window &&
-            typeof Notification === 'function' &&
-            Notification.permission === 'granted'
-          ) {
-            new Notification(title, {
-              body: message,
-              icon: '/logo.png',
-            });
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+              navigator.serviceWorker.ready
+                .then((reg) => {
+                  reg.showNotification(title, {
+                    body: message,
+                    icon: '/logo.png',
+                    badge: '/logo.png',
+                    vibrate: [200, 100, 200, 100, 400],
+                    data: {
+                      url: `/order/${orderId}`
+                    }
+                  } as any);
+                })
+                .catch(() => {
+                  try {
+                    new Notification(title, { body: message, icon: '/logo.png' });
+                  } catch (e) {}
+                });
+            } else {
+              new Notification(title, { body: message, icon: '/logo.png' });
+            }
           }
         } catch (e) {}
       } else {

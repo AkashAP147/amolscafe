@@ -34,7 +34,19 @@ export default function MenuPage() {
   const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
-    // Real-time listener for menu items using Realtime Database
+    // 1. Instant Cache Load: Read cached menu items immediately to eliminate loading lag
+    try {
+      const cached = localStorage.getItem('amolscafe_menu_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMenuItems(parsed);
+          setLoading(false);
+        }
+      }
+    } catch (e) {}
+
+    // 2. Fetch fresh data from Firebase Realtime Database
     const menuRef = ref(db, 'menu_items');
     const unsubscribe = onValue(menuRef, (snapshot) => {
       const data = snapshot.val();
@@ -44,8 +56,11 @@ export default function MenuPage() {
           ...data[key]
         })) as MenuItem[];
         
-        // Group by category manually since we fetched all
         setMenuItems(items);
+        // Persist to cache for instantaneous loading across views
+        try {
+          localStorage.setItem('amolscafe_menu_cache', JSON.stringify(items));
+        } catch (e) {}
       } else {
         setMenuItems([]);
       }

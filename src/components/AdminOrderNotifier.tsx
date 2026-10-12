@@ -122,18 +122,35 @@ export default function AdminOrderNotifier() {
           createdAt: latest.createdAt || Date.now()
         });
 
-        // 4. Safe System Notification
+        // 4. Background device notification via Service Worker
         try {
           if (
             typeof window !== 'undefined' &&
             'Notification' in window &&
-            typeof Notification === 'function' &&
             Notification.permission === 'granted'
           ) {
-            new Notification('🔔 New Order Received!', {
-              body: `Order #${latest.orderNumber || ''} • ${latest.customerName || 'Customer'} • ₹${latest.total}`,
-              icon: '/logo.png'
-            });
+            const notifTitle = '🔔 New Order Received!';
+            const notifBody = `Order #${latest.orderNumber || ''} • ${latest.customerName || 'Customer'} • ₹${latest.total}`;
+
+            if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+              navigator.serviceWorker.ready
+                .then((reg) => {
+                  reg.showNotification(notifTitle, {
+                    body: notifBody,
+                    icon: '/logo.png',
+                    badge: '/logo.png',
+                    vibrate: [200, 100, 200, 100, 400],
+                    data: { url: '/admin/kitchen' }
+                  } as any);
+                })
+                .catch(() => {
+                  try {
+                    new Notification(notifTitle, { body: notifBody, icon: '/logo.png' });
+                  } catch (e) {}
+                });
+            } else {
+              new Notification(notifTitle, { body: notifBody, icon: '/logo.png' });
+            }
           }
         } catch (e) {}
       }
