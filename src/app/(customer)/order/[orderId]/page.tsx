@@ -388,16 +388,27 @@ function OrderTracker() {
                 ) : (() => {
                   const rawUpiId = (paymentSettings.upiId || '').trim();
                   const rawUpiName = (paymentSettings.upiName || "Amol's Cafe").trim();
-                  const encodedUpiName = encodeURIComponent(rawUpiName);
-                  const formattedAmt = Number(order.total).toFixed(2);
-                  const tn = encodeURIComponent(`Order #${order.orderNumber || order.orderId}`);
-                  const tr = encodeURIComponent(String(order.orderId || order.orderNumber));
+                  const cleanUpiName = encodeURIComponent(rawUpiName);
+                  const formattedAmt = String(Number(order.total).toFixed(2));
+                  // Note: Clean alphanumeric text without '#', which is a URL fragment delimiter that crashes UPI intent parsers
+                  const cleanTn = encodeURIComponent(`Order ${order.orderNumber || ''}`.trim() || 'Amols Cafe');
                   
-                  const baseQuery = `pa=${rawUpiId}&pn=${encodedUpiName}&am=${formattedAmt}&cu=INR&tn=${tn}&tr=${tr}`;
-                  const genericUpiUri = `upi://pay?${baseQuery}`;
-                  const phonePeUri = `phonepe://pay?${baseQuery}`;
-                  const gpayUri = `gpay://upi/pay?${baseQuery}`;
-                  const paytmUri = `paytmmp://pay?${baseQuery}`;
+                  // Standard NPCI UPI query:
+                  // CRITICAL: Do NOT include 'tr', 'mc', or 'sign' on standard VPAs - they cause PhonePe/GPay security checks to fail and exit immediately!
+                  const cleanUpiQuery = `pa=${rawUpiId}&pn=${cleanUpiName}&am=${formattedAmt}&cu=INR&tn=${cleanTn}`;
+                  const standardUpiUrl = `upi://pay?${cleanUpiQuery}`;
+
+                  // Official Android Intent URLs for specific apps to prevent instant crashes
+                  const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent || '');
+                  const phonePeUrl = isAndroid
+                    ? `intent://pay?${cleanUpiQuery}#Intent;scheme=upi;package=com.phonepe.app;end`
+                    : standardUpiUrl;
+                  const gpayUrl = isAndroid
+                    ? `intent://pay?${cleanUpiQuery}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
+                    : standardUpiUrl;
+                  const paytmUrl = isAndroid
+                    ? `intent://pay?${cleanUpiQuery}#Intent;scheme=upi;package=net.one97.paytm;end`
+                    : standardUpiUrl;
 
                   const handleCopyUpi = () => {
                     if (!rawUpiId) return;
@@ -419,7 +430,7 @@ function OrderTracker() {
                           <img src={paymentSettings.qrImageUrl} alt="Payment QR Code" className="w-[200px] h-[200px] object-contain" />
                         ) : (
                           <QRCodeSVG 
-                            value={genericUpiUri}
+                            value={standardUpiUrl}
                             size={200}
                             level="H"
                           />
@@ -472,25 +483,25 @@ function OrderTracker() {
                         <div className="grid grid-cols-2 gap-2">
                           {/* PhonePe */}
                           <a
-                            href={phonePeUri}
+                            href={phonePeUrl}
                             className="bg-[#5f259f]/90 hover:bg-[#5f259f] text-white py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-[#783dbd] transition-all transform active:scale-95 shadow-md shadow-[#5f259f]/20"
                           >
-                            <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                            <span className="w-2 h-2 rounded-full bg-white"></span>
                             PhonePe
                           </a>
 
                           {/* Google Pay */}
                           <a
-                            href={gpayUri}
+                            href={gpayUrl}
                             className="bg-[#1a73e8]/90 hover:bg-[#1a73e8] text-white py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-[#3b8af5] transition-all transform active:scale-95 shadow-md shadow-[#1a73e8]/20"
                           >
-                            <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                            <span className="w-2 h-2 rounded-full bg-white"></span>
                             Google Pay
                           </a>
 
                           {/* Paytm */}
                           <a
-                            href={paytmUri}
+                            href={paytmUrl}
                             className="bg-[#002e6e]/90 hover:bg-[#002e6e] text-[#00b9f5] border border-[#00b9f5]/40 py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all transform active:scale-95"
                           >
                             Paytm
@@ -498,23 +509,23 @@ function OrderTracker() {
 
                           {/* Generic UPI App */}
                           <a
-                            href={genericUpiUri}
+                            href={standardUpiUrl}
                             className="bg-[#242424] hover:bg-[#2d2d2d] text-white border border-[#3a3a3a] py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all transform active:scale-95"
                           >
-                            Other UPI
+                            Any UPI App
                           </a>
                         </div>
 
                         {/* Primary Big Button */}
                         <a 
-                          href={genericUpiUri}
+                          href={standardUpiUrl}
                           className="block w-full bg-[#F58A1F] hover:bg-[#e07a1b] text-white py-3.5 rounded-xl font-bold transition-all text-sm shadow-lg shadow-[#F58A1F]/20"
                         >
                           Pay ₹{order.total} with UPI
                         </a>
 
                         <p className="text-[11px] text-[#888] leading-tight px-1 text-center">
-                          If your default app doesn't have an active bank account, tap <strong className="text-white">PhonePe</strong>, <strong className="text-white">Google Pay</strong>, or tap <strong className="text-[#F58A1F]">Copy ID</strong> to pay in your preferred app.
+                          If your default app closes or has no linked bank account, tap <strong className="text-white">PhonePe</strong>, <strong className="text-white">Google Pay</strong>, or tap <strong className="text-[#F58A1F]">Copy ID</strong> to pay directly.
                         </p>
                         
                         <div className="relative flex items-center py-2">
