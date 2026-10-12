@@ -197,6 +197,13 @@ export default function CheckoutPage() {
       // Clear cart
       clearCart();
 
+      // Save recent order ID for global notification tracking
+      try {
+        const stored = JSON.parse(localStorage.getItem('amolscafe_recent_orders') || '[]');
+        const updated = [orderId, ...stored.filter((id: string) => id !== orderId)].slice(0, 10);
+        localStorage.setItem('amolscafe_recent_orders', JSON.stringify(updated));
+      } catch (e) {}
+
       // Open WhatsApp in a new tab
       window.open(whatsappUrl, '_blank');
 

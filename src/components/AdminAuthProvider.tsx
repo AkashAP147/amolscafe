@@ -6,6 +6,7 @@ import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
+import AdminOrderNotifier from './AdminOrderNotifier';
 
 export default function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -44,7 +45,8 @@ export default function AdminAuthProvider({ children }: { children: React.ReactN
   if (!user) return null;
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#0B0B0B] overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen bg-[#0B0B0B] overflow-hidden relative">
+      <AdminOrderNotifier />
       <AdminSidebar />
       <main className="flex-grow overflow-y-auto bg-[#0B0B0B]">
         {children}

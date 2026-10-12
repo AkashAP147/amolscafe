@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import CustomerOrderNotifier from "@/components/CustomerOrderNotifier";
 
 export default function CustomerLayout({
   children,
@@ -9,6 +10,7 @@ export default function CustomerLayout({
 }) {
   return (
     <>
+      <CustomerOrderNotifier />
       <Suspense fallback={null}>
         <Navbar />
       </Suspense>

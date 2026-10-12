@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase';
 import { ref, onValue, update } from 'firebase/database';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag, XCircle, AlertTriangle, Lock, BellRing, Sparkles } from 'lucide-react';
+import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag, XCircle, AlertTriangle, Lock, BellRing, Sparkles, Copy, Check, Smartphone, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
@@ -20,6 +20,7 @@ function OrderTracker() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
+  const [copiedUpi, setCopiedUpi] = useState(false);
 
   // Cross-platform popup banner state
   const [liveAlert, setLiveAlert] = useState<{
@@ -36,6 +37,7 @@ function OrderTracker() {
         router.push(`/login?redirect=/order/${orderId}`);
       }
     });
+
     return () => unsubscribe();
   }, [orderId, router]);
 
@@ -44,6 +46,10 @@ function OrderTracker() {
 
   // Trigger alert safely across all devices (Android, iOS Safari, desktop)
   const triggerDeviceAlert = (title: string, message: string, type: 'ready' | 'cancelled') => {
+    try {
+      (window as any).__lastOrderAlertTimestamp = Date.now();
+    } catch (e) {}
+
     // 1. In-app prominent banner (100% works on Android and iOS Safari)
     setLiveAlert({ title, message, type });
 
@@ -54,10 +60,23 @@ function OrderTracker() {
       }
     } catch (e) {}
 
-    // 3. Audio alert (plays on all mobile browsers)
+    // 3. Audio alert via synthesized Web Audio (zero network/404 dependency)
     try {
-      const audio = new Audio('/bell.mp3');
-      audio.play().catch(() => {});
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass();
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(type === 'ready' ? 784 : 440, now);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      }
     } catch (e) {}
 
     // 4. Safe System Notification fallback (only if granted and not throwing constructor error)
@@ -366,47 +385,155 @@ function OrderTracker() {
                     <h2 className="text-xl font-bold text-white mb-2">Paying with Cash</h2>
                     <p className="text-[#B5B5B5]">Please pay ₹{order.total} at the counter.</p>
                   </>
-                ) : (
-                  <>
-                    <h2 className="text-xl font-bold text-white mb-2">Complete Payment</h2>
-                    <p className="text-[#B5B5B5] mb-8">Scan to pay securely via UPI</p>
-                    
-                    <div className="bg-white p-4 rounded-2xl mb-6 shadow-xl flex items-center justify-center min-h-[200px] min-w-[200px]">
-                      {paymentSettings.qrImageUrl ? (
-                        <img src={paymentSettings.qrImageUrl} alt="Payment QR Code" className="w-[200px] h-[200px] object-contain" />
-                      ) : (
-                        <QRCodeSVG 
-                          value={`upi://pay?pa=${paymentSettings.upiId}&pn=${paymentSettings.upiName || 'Amols Cafe'}&am=${order.total}&cu=INR`}
-                          size={200}
-                          level="H"
-                        />
-                      )}
-                    </div>
+                ) : (() => {
+                  const rawUpiId = (paymentSettings.upiId || '').trim();
+                  const rawUpiName = (paymentSettings.upiName || "Amol's Cafe").trim();
+                  const encodedUpiName = encodeURIComponent(rawUpiName);
+                  const formattedAmt = Number(order.total).toFixed(2);
+                  const tn = encodeURIComponent(`Order #${order.orderNumber || order.orderId}`);
+                  const tr = encodeURIComponent(String(order.orderId || order.orderNumber));
+                  
+                  const baseQuery = `pa=${rawUpiId}&pn=${encodedUpiName}&am=${formattedAmt}&cu=INR&tn=${tn}&tr=${tr}`;
+                  const genericUpiUri = `upi://pay?${baseQuery}`;
+                  const phonePeUri = `phonepe://pay?${baseQuery}`;
+                  const gpayUri = `gpay://upi/pay?${baseQuery}`;
+                  const paytmUri = `paytmmp://pay?${baseQuery}`;
 
-                    <div className="w-full space-y-3">
-                      <a 
-                        href={`upi://pay?pa=${paymentSettings.upiId}&pn=${paymentSettings.upiName || 'Amols Cafe'}&am=${order.total}&cu=INR`}
-                        className="block w-full bg-[#F58A1F] hover:bg-[#e07a1b] text-white py-4 rounded-xl font-bold transition-colors"
-                      >
-                        Pay ₹{order.total} with UPI App
-                      </a>
+                  const handleCopyUpi = () => {
+                    if (!rawUpiId) return;
+                    try {
+                      navigator.clipboard.writeText(rawUpiId);
+                      setCopiedUpi(true);
+                      setTimeout(() => setCopiedUpi(false), 3000);
+                    } catch (e) {}
+                  };
+
+                  return (
+                    <>
+                      <h2 className="text-xl font-bold text-white mb-1">Complete Payment</h2>
+                      <p className="text-[#B5B5B5] text-sm mb-6">Scan QR or tap your UPI app to pay</p>
                       
-                      <div className="relative flex items-center py-2">
-                        <div className="flex-grow border-t border-[#2a2a2a]"></div>
-                        <span className="flex-shrink-0 mx-4 text-[#888] text-sm">OR</span>
-                        <div className="flex-grow border-t border-[#2a2a2a]"></div>
+                      {/* QR Code Container */}
+                      <div className="bg-white p-4 rounded-2xl mb-5 shadow-2xl flex items-center justify-center min-h-[200px] min-w-[200px] border-4 border-white/10">
+                        {paymentSettings.qrImageUrl ? (
+                          <img src={paymentSettings.qrImageUrl} alt="Payment QR Code" className="w-[200px] h-[200px] object-contain" />
+                        ) : (
+                          <QRCodeSVG 
+                            value={genericUpiUri}
+                            size={200}
+                            level="H"
+                          />
+                        )}
                       </div>
 
-                      <button 
-                        onClick={handlePayWithCash}
-                        className="w-full bg-transparent border-2 border-[#2a2a2a] hover:border-[#F58A1F] hover:text-[#F58A1F] text-[#B5B5B5] py-4 rounded-xl font-bold transition-colors"
-                      >
-                        Continue with Cash
-                      </button>
-                      <p className="text-xs text-[#888]">Pay at the counter when you pick up your order.</p>
-                    </div>
-                  </>
-                )}
+                      {/* 1-Click Copy UPI ID Card */}
+                      <div className="w-full bg-[#1F1F1F] border border-[#333] rounded-xl p-3 mb-5 text-left">
+                        <div className="flex items-center justify-between text-xs text-[#888] mb-1">
+                          <span>CAFE UPI ID</span>
+                          <span className="text-[#10B981] font-medium">Verified Merchant</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <code className="text-sm font-mono text-[#F58A1F] font-semibold truncate select-all">
+                            {rawUpiId}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={handleCopyUpi}
+                            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              copiedUpi
+                                ? 'bg-[#10B981] text-white'
+                                : 'bg-[#2a2a2a] hover:bg-[#383838] text-white border border-[#444]'
+                            }`}
+                          >
+                            {copiedUpi ? (
+                              <>
+                                <Check size={14} /> Copied!
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={14} /> Copy ID
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        {copiedUpi && (
+                          <p className="text-[11px] text-[#10B981] mt-1.5 flex items-center gap-1">
+                            ✓ Copied! Open GPay, PhonePe, or Paytm and send ₹{order.total}.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Dedicated App Buttons for Mobile */}
+                      <div className="w-full space-y-2.5">
+                        <p className="text-xs text-[#888] font-medium text-left flex items-center gap-1.5">
+                          <Smartphone size={14} className="text-[#F58A1F]" /> Pay Directly via Mobile App:
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* PhonePe */}
+                          <a
+                            href={phonePeUri}
+                            className="bg-[#5f259f]/90 hover:bg-[#5f259f] text-white py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-[#783dbd] transition-all transform active:scale-95 shadow-md shadow-[#5f259f]/20"
+                          >
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                            PhonePe
+                          </a>
+
+                          {/* Google Pay */}
+                          <a
+                            href={gpayUri}
+                            className="bg-[#1a73e8]/90 hover:bg-[#1a73e8] text-white py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 border border-[#3b8af5] transition-all transform active:scale-95 shadow-md shadow-[#1a73e8]/20"
+                          >
+                            <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+                            Google Pay
+                          </a>
+
+                          {/* Paytm */}
+                          <a
+                            href={paytmUri}
+                            className="bg-[#002e6e]/90 hover:bg-[#002e6e] text-[#00b9f5] border border-[#00b9f5]/40 py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all transform active:scale-95"
+                          >
+                            Paytm
+                          </a>
+
+                          {/* Generic UPI App */}
+                          <a
+                            href={genericUpiUri}
+                            className="bg-[#242424] hover:bg-[#2d2d2d] text-white border border-[#3a3a3a] py-3 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all transform active:scale-95"
+                          >
+                            Other UPI
+                          </a>
+                        </div>
+
+                        {/* Primary Big Button */}
+                        <a 
+                          href={genericUpiUri}
+                          className="block w-full bg-[#F58A1F] hover:bg-[#e07a1b] text-white py-3.5 rounded-xl font-bold transition-all text-sm shadow-lg shadow-[#F58A1F]/20"
+                        >
+                          Pay ₹{order.total} with UPI
+                        </a>
+
+                        <p className="text-[11px] text-[#888] leading-tight px-1 text-center">
+                          If your default app doesn't have an active bank account, tap <strong className="text-white">PhonePe</strong>, <strong className="text-white">Google Pay</strong>, or tap <strong className="text-[#F58A1F]">Copy ID</strong> to pay in your preferred app.
+                        </p>
+                        
+                        <div className="relative flex items-center py-2">
+                          <div className="flex-grow border-t border-[#2a2a2a]"></div>
+                          <span className="flex-shrink-0 mx-4 text-[#888] text-xs font-semibold">OR PAY OFFLINE</span>
+                          <div className="flex-grow border-t border-[#2a2a2a]"></div>
+                        </div>
+
+                        <button 
+                          onClick={handlePayWithCash}
+                          className="w-full bg-transparent border border-[#333] hover:border-[#F58A1F] hover:text-[#F58A1F] text-[#B5B5B5] py-3.5 rounded-xl font-bold transition-colors text-sm"
+                        >
+                          Pay with Cash at Counter
+                        </button>
+                        <p className="text-xs text-[#888]">Pay at the counter when you pick up your order.</p>
+                      </div>
+                    </>
+                  );
+                })()}
               </motion.div>
             )}
 
