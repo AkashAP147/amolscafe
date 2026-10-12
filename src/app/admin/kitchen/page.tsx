@@ -215,6 +215,11 @@ function KitchenColumn({ title, count, color, orders, actionLabel, actionColor, 
                   {order.tableNumber && (
                     <p className="text-white font-bold mt-1">Table {order.tableNumber}</p>
                   )}
+                  {order.timeNeeded && (
+                    <p className="text-[#F58A1F] text-xs font-semibold flex items-center gap-1 mt-1 justify-end">
+                      <Clock size={12} /> {order.timeNeeded}
+                    </p>
+                  )}
                 </div>
               </div>
 

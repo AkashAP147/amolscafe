@@ -123,6 +123,7 @@ export default function AdminOrdersPage() {
                 <td className="py-4 px-6">
                   <div className="font-bold">{order.customerName || 'Walk-in Customer'}</div>
                   <div className="text-sm text-[#B5B5B5]">{order.tableNumber ? `Table ${order.tableNumber}` : 'Takeaway'}</div>
+                  {order.timeNeeded && <div className="text-xs text-[#F58A1F] font-medium mt-0.5">⏱️ {order.timeNeeded}</div>}
                 </td>
                 <td className="py-4 px-6">
                   <div className="text-sm max-w-[200px]">

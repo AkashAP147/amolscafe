@@ -8,9 +8,19 @@ import { ref, set } from 'firebase/database';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
 import { get } from 'firebase/database';
-import { ArrowLeft, CheckCircle2, Loader2, Utensils, ShoppingBag } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, Utensils, ShoppingBag, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+
+const TIME_PRESETS = [
+  'ASAP (15-20 mins)',
+  '30 mins',
+  '45 mins',
+  '1 hr',
+  '1.5 hrs',
+  '2 hrs',
+  '3 hrs'
+];
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -21,6 +31,9 @@ export default function CheckoutPage() {
   const [orderType, setOrderType] = useState<'Dine In' | 'Take Away'>('Dine In');
   const [tableNumber, setTableNumber] = useState('');
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [timeNeeded, setTimeNeeded] = useState('ASAP (15-20 mins)');
+  const [customTime, setCustomTime] = useState('');
+  const [isCustomTime, setIsCustomTime] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -72,7 +85,10 @@ export default function CheckoutPage() {
 
     if (!name.trim()) return setError('Please enter your name');
     if (!mobile.trim() || mobile.length < 10) return setError('Please enter a valid mobile number');
-    if (orderType === 'Dine In' && !tableNumber.trim()) return setError('Please enter your table number');
+
+    const finalTimeNeeded = isCustomTime
+      ? (customTime.trim() || 'ASAP (15-20 mins)')
+      : (timeNeeded || 'ASAP (15-20 mins)');
 
     setIsSubmitting(true);
 
@@ -93,7 +109,8 @@ export default function CheckoutPage() {
         customerName: name.trim(),
         phone: mobile.trim(),
         orderType,
-        tableNumber: orderType === 'Dine In' ? tableNumber.trim() : null,
+        tableNumber: orderType === 'Dine In' && tableNumber.trim() ? tableNumber.trim() : null,
+        timeNeeded: finalTimeNeeded,
         specialInstructions: specialInstructions.trim(),
         items: items.map(item => ({
           itemId: item.productId,
@@ -153,7 +170,8 @@ export default function CheckoutPage() {
         `*New Order: #${orderId}*`,
         `*Customer:* ${name.trim()}`,
         `*Phone:* ${mobile.trim()}`,
-        `*Type:* ${orderType}${orderType === 'Dine In' && tableNumber ? ` (Table ${tableNumber.trim()})` : ''}`,
+        `*Type:* ${orderType}${orderType === 'Dine In' && tableNumber.trim() ? ` (Table ${tableNumber.trim()})` : ''}`,
+        `*Time Needed:* ${finalTimeNeeded}`,
         `\n*Items:*`,
         itemsList,
         `\n*Total:* ₹${subtotal}`,
@@ -266,24 +284,86 @@ export default function CheckoutPage() {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="pt-4"
                   >
-                    <label className="block text-sm font-medium text-[#B5B5B5] mb-2">Table Number *</label>
+                    <label className="block text-sm font-medium text-[#B5B5B5] mb-2">Table Number (Optional)</label>
                     <input 
                       type="text" 
                       value={tableNumber}
                       onChange={(e) => setTableNumber(e.target.value)}
-                      placeholder="e.g. 7"
+                      placeholder="e.g. 7 (leave blank if not seated yet)"
                       className="w-full sm:w-1/2 bg-[#0B0B0B] border border-[#2a2a2a] text-white rounded-xl py-3 px-4 focus:outline-none focus:border-[#F58A1F] transition-colors"
-                      required={orderType === 'Dine In'}
                     />
                   </motion.div>
                 )}
 
+                {/* Time Needed (Minutes to Hours) */}
                 <div className="border-t border-[#2a2a2a] pt-6">
-                  <label className="block text-sm font-medium text-[#B5B5B5] mb-2">Special Instructions (Optional)</label>
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-sm font-medium text-white flex items-center gap-2">
+                      <Clock size={16} className="text-[#F58A1F]" />
+                      Time Needed For Order
+                    </label>
+                    <span className="text-xs text-[#888]">Minutes to Hours</span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-3">
+                    {TIME_PRESETS.map((preset) => {
+                      const isSelected = !isCustomTime && timeNeeded === preset;
+                      return (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => {
+                            setTimeNeeded(preset);
+                            setIsCustomTime(false);
+                          }}
+                          className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all text-center ${
+                            isSelected
+                              ? 'border-[#F58A1F] bg-[#F58A1F]/15 text-[#F58A1F] font-semibold'
+                              : 'border-[#2a2a2a] bg-[#0B0B0B] text-[#B5B5B5] hover:border-[#444]'
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setIsCustomTime(true)}
+                      className={`py-2.5 px-3 rounded-xl border text-sm font-medium transition-all text-center ${
+                        isCustomTime
+                          ? 'border-[#F58A1F] bg-[#F58A1F]/15 text-[#F58A1F] font-semibold'
+                          : 'border-[#2a2a2a] bg-[#0B0B0B] text-[#B5B5B5] hover:border-[#444]'
+                      }`}
+                    >
+                      Custom Time
+                    </button>
+                  </div>
+
+                  {isCustomTime && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-3"
+                    >
+                      <input
+                        type="text"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        placeholder="e.g. 25 mins, 40 mins, 1 hr 15 mins..."
+                        className="w-full bg-[#0B0B0B] border border-[#2a2a2a] text-white rounded-xl py-2.5 px-4 focus:outline-none focus:border-[#F58A1F] text-sm transition-colors"
+                      />
+                    </motion.div>
+                  )}
+                </div>
+
+                <div className="border-t border-[#2a2a2a] pt-6">
+                  <label className="block text-sm font-medium text-[#B5B5B5] mb-2">
+                    Order Description / Special Instructions (Optional)
+                  </label>
                   <textarea 
                     value={specialInstructions}
                     onChange={(e) => setSpecialInstructions(e.target.value)}
-                    placeholder="e.g. Less spicy, extra cheese..."
+                    placeholder="e.g. Less spicy, extra cheese, parcel separately..."
                     rows={3}
                     className="w-full bg-[#0B0B0B] border border-[#2a2a2a] text-white rounded-xl py-3 px-4 focus:outline-none focus:border-[#F58A1F] transition-colors resize-none"
                   />

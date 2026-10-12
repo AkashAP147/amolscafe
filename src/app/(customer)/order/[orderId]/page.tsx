@@ -259,6 +259,14 @@ function OrderTracker() {
                     <p className="text-white font-medium">{order.tableNumber}</p>
                   </div>
                 )}
+                {order.timeNeeded && (
+                  <div>
+                    <p className="text-sm text-[#B5B5B5]">Needed In</p>
+                    <p className="text-[#F58A1F] font-medium flex items-center gap-1.5 mt-0.5">
+                      <Clock size={14} /> {order.timeNeeded}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <h3 className="text-white font-bold mb-4">Items</h3>
