@@ -53,15 +53,16 @@ export default function CustomerLogin() {
   return (
     <div className="min-h-screen bg-[#0B0B0B] flex">
       {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 md:px-24 xl:px-32 relative z-10">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-16 md:px-24 xl:px-32 pt-24 pb-12 sm:py-16 relative z-10">
         
-        <Link href="/" className="absolute top-8 left-8 sm:left-16 md:left-24 xl:left-32 text-[#B5B5B5] hover:text-white transition-colors flex items-center gap-2 font-bold tracking-tight text-xl">
-          <span className="text-[#F58A1F]">Amol's</span> Cafe
+        <Link href="/" className="absolute top-6 left-6 sm:top-8 sm:left-16 md:left-24 xl:left-32 text-[#B5B5B5] hover:text-white transition-colors flex items-center gap-2 font-bold tracking-tight text-xl">
+          <img src="/logo.png" alt="Amols Cafe" className="w-7 h-7 object-contain" />
+          <span><span className="text-[#F58A1F]">Amol's</span> Cafe</span>
         </Link>
 
         <div className="max-w-md w-full mx-auto">
-          <div className="mb-10">
-            <h1 className="text-4xl font-bold text-white mb-3">
+          <div className="mb-8 sm:mb-10">
+            <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2 sm:mb-3">
               {isLogin ? 'Welcome Back' : 'Create Account'}
             </h1>
             <p className="text-[#B5B5B5]">
