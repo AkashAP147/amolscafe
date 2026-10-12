@@ -1,20 +1,36 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { db } from '@/lib/firebase';
+import { useParams, useRouter } from 'next/navigation';
+import { db, auth } from '@/lib/firebase';
 import { ref, onValue, update } from 'firebase/database';
-import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag, XCircle, AlertTriangle } from 'lucide-react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag, XCircle, AlertTriangle, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
+import Link from 'next/link';
 
 import { Suspense } from 'react';
 
 function OrderTracker() {
   const { orderId } = useParams();
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setAuthLoading(false);
+      if (!user) {
+        router.push(`/login?redirect=/order/${orderId}`);
+      }
+    });
+    return () => unsubscribe();
+  }, [orderId, router]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -50,12 +66,14 @@ function OrderTracker() {
   }, [order?.orderStatus, order?.cancellationReason, hasNotifiedReady, hasNotifiedCancelled]);
 
   useEffect(() => {
-    if (!orderId) return;
+    if (!orderId || !currentUser) return;
     
     const orderRef = ref(db, `orders/${orderId}`);
     const unsubscribe = onValue(orderRef, (snapshot) => {
       if (snapshot.exists()) {
         setOrder(snapshot.val());
+      } else {
+        setOrder(null);
       }
       setLoading(false);
     });
@@ -68,7 +86,7 @@ function OrderTracker() {
     });
 
     return () => unsubscribe();
-  }, [orderId]);
+  }, [orderId, currentUser]);
 
   const handlePayWithCash = async () => {
     try {
@@ -81,10 +99,54 @@ function OrderTracker() {
     }
   };
 
-  if (loading) {
+  if (authLoading || (loading && currentUser)) {
     return (
       <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#F58A1F]"></div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center text-white px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4 text-red-500">
+          <Lock size={32} />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Login Required</h1>
+        <p className="text-[#B5B5B5] max-w-sm mb-6">
+          Please log in to your account to view this order&apos;s live status and details.
+        </p>
+        <Link
+          href={`/login?redirect=/order/${orderId}`}
+          className="bg-[#F58A1F] hover:bg-[#e07a1b] text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-[#F58A1F]/20"
+        >
+          Login to View Order
+        </Link>
+      </div>
+    );
+  }
+
+  // Check if order belongs to user or user is admin
+  const isAdmin = currentUser.email && currentUser.email.toLowerCase() === 'amolscafe@gmail.com';
+  const isOwner = order && (order.userId === currentUser.uid || !order.userId);
+
+  if (order && !isAdmin && !isOwner) {
+    return (
+      <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center text-white px-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-4 text-red-500">
+          <Lock size={32} />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
+        <p className="text-[#B5B5B5] max-w-sm mb-6">
+          You don&apos;t have permission to view this order. It belongs to another customer account.
+        </p>
+        <Link
+          href="/my-orders"
+          className="bg-[#161616] hover:bg-[#222] border border-[#2a2a2a] text-white px-6 py-3 rounded-xl font-bold transition-all"
+        >
+          Go to My Orders
+        </Link>
       </div>
     );
   }
@@ -93,7 +155,7 @@ function OrderTracker() {
     return (
       <div className="min-h-screen bg-[#0B0B0B] flex flex-col items-center justify-center text-white">
         <h1 className="text-2xl font-bold mb-4">Order Not Found</h1>
-        <p className="text-[#B5B5B5]">We couldn't find an order with ID #{orderId}</p>
+        <p className="text-[#B5B5B5]">We couldn&apos;t find an order with ID #{orderId}</p>
       </div>
     );
   }

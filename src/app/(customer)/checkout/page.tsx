@@ -4,10 +4,9 @@ import { useState, useEffect } from 'react';
 import { useCartStore } from '@/store/useCartStore';
 import { useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { ref, set } from 'firebase/database';
+import { ref, set, get, runTransaction } from 'firebase/database';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
-import { get } from 'firebase/database';
 import { ArrowLeft, CheckCircle2, Loader2, Utensils, ShoppingBag, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -39,6 +38,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   
   const [userId, setUserId] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -55,10 +55,13 @@ export default function CheckoutPage() {
         } catch (error) {
           console.warn('Could not fetch user phone number (permission denied or missing).', error);
         }
+      } else {
+        router.push('/login?redirect=/checkout');
       }
+      setAuthLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const subtotal = getCartTotal();
 
@@ -73,10 +76,20 @@ export default function CheckoutPage() {
     );
   }
 
-  const generateOrderId = () => {
-    const prefix = 'AC';
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    return `${prefix}${randomNum}`;
+  const getNextOrderId = async () => {
+    try {
+      const counterRef = ref(db, 'settings/lastOrderNumber');
+      const result = await runTransaction(counterRef, (currentVal) => {
+        return (currentVal || 1000) + 1;
+      });
+      if (result.committed) {
+        return `AC${result.snapshot.val()}`;
+      }
+    } catch (err) {
+      console.warn('Failed to increment order counter transactionally, using timestamp fallback', err);
+    }
+    // Fallback if offline/permission issue
+    return `AC${Math.floor(1001 + Math.random() * 8999)}`;
   };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
@@ -93,7 +106,7 @@ export default function CheckoutPage() {
     setIsSubmitting(true);
 
     try {
-      const orderId = generateOrderId();
+      const orderId = await getNextOrderId();
       
       let currentUserId = null;
       try {
