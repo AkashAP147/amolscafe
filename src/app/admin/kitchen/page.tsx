@@ -62,6 +62,9 @@ export default function KitchenDashboard() {
       const updates: any = {};
       updates[`orders/${orderId}/orderStatus`] = newStatus;
       updates[`orders/${orderId}/updatedAt`] = Date.now();
+      if (newStatus === 'COMPLETED') {
+        updates[`orders/${orderId}/completedAt`] = Date.now();
+      }
       await update(ref(db), updates);
     } catch (error) {
       console.error("Error updating status:", error);

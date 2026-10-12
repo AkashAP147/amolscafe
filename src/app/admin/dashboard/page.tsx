@@ -44,7 +44,39 @@ export default function AdminDashboard() {
   const pendingCount = todaysOrders.filter(o => o.orderStatus === 'PENDING').length;
   const preparingCount = todaysOrders.filter(o => o.orderStatus === 'PREPARING').length;
   const readyCount = todaysOrders.filter(o => o.orderStatus === 'READY').length;
+  const completedOrders = orders.filter(o => o.orderStatus === 'COMPLETED');
   const completedCount = todaysOrders.filter(o => o.orderStatus === 'COMPLETED').length;
+
+  // Real Average Completion Time calculation (in minutes)
+  const calculateAvgCompletionTime = () => {
+    // Look at completed orders with valid timestamps
+    const ordersWithDuration = completedOrders.filter(o => {
+      const end = o.completedAt || o.updatedAt;
+      return o.createdAt && end && end > o.createdAt;
+    });
+
+    if (ordersWithDuration.length === 0) {
+      return '-- mins';
+    }
+
+    const totalMinutes = ordersWithDuration.reduce((sum, o) => {
+      const end = o.completedAt || o.updatedAt;
+      const durationMs = end - o.createdAt;
+      const minutes = durationMs / (1000 * 60);
+      return sum + minutes;
+    }, 0);
+
+    const avgMinutes = Math.round(totalMinutes / ordersWithDuration.length);
+    if (avgMinutes < 1) return '< 1 min';
+    if (avgMinutes >= 60) {
+      const hours = Math.floor(avgMinutes / 60);
+      const remainingMins = avgMinutes % 60;
+      return remainingMins > 0 ? `${hours}h ${remainingMins}m` : `${hours}h`;
+    }
+    return `${avgMinutes} mins`;
+  };
+
+  const avgCompletionTime = calculateAvgCompletionTime();
 
   return (
     <div className="p-4 md:p-10 max-w-7xl mx-auto">
@@ -120,7 +152,7 @@ export default function AdminDashboard() {
               </div>
               <div>
                 <p className="text-[#B5B5B5] text-sm">Avg. Completion Time</p>
-                <p className="text-white font-bold text-lg">12 mins</p>
+                <p className="text-white font-bold text-lg">{avgCompletionTime}</p>
               </div>
             </div>
           </div>

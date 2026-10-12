@@ -33,7 +33,15 @@ export default function AdminOrdersPage() {
 
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     try {
-      await update(ref(db, `orders/${orderId}`), { status: newStatus });
+      const updates: any = {
+        status: newStatus,
+        orderStatus: newStatus.toUpperCase(),
+        updatedAt: Date.now()
+      };
+      if (newStatus.toUpperCase() === 'COMPLETED') {
+        updates.completedAt = Date.now();
+      }
+      await update(ref(db, `orders/${orderId}`), updates);
     } catch (error) {
       console.error("Error updating status:", error);
       alert("Failed to update order status");
