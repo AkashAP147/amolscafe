@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, ChefHat, ClipboardList, TrendingUp, Settings, LogOut, Menu as MenuIcon, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { LayoutDashboard, ChefHat, ClipboardList, TrendingUp, Settings, LogOut, Menu as MenuIcon, X, ExternalLink } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 const sidebarLinks = [
   { name: 'Kitchen ', href: '/admin/kitchen', icon: ChefHat },
@@ -18,27 +18,76 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
+  const openMenu = () => {
+    setIsOpen(true);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ adminMenuOpen: true }, '');
+    }
+  };
+
+  const closeMenu = () => {
+    setIsOpen(false);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isOpen]);
+
+  // Close menu on pathname change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
   return (
     <>
-      {/* Mobile Header */}
-      <div className="md:hidden bg-[#161616] border-b border-[#2a2a2a] p-4 flex justify-between items-center sticky top-0 z-50">
-        <div className="flex items-center gap-3 font-bold text-xl text-white">
-          <img src="/logo.png" alt="Amols Cafe Logo" className="h-10 w-auto object-contain shrink-0" />
-          <span><span className="text-[#F58A1F]">Amol's</span> Admin</span>
+      {/* Mobile Header: Left-aligned 3-line/menu button */}
+      <div className="md:hidden bg-[#161616] border-b border-[#2a2a2a] px-4 py-3.5 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => (isOpen ? closeMenu() : openMenu())} 
+            className="text-[#B5B5B5] hover:text-white p-2 rounded-xl border border-[#2a2a2a] bg-[#161616] focus:outline-none focus:border-[#F58A1F] transition-colors"
+            aria-label="Toggle admin navigation menu"
+          >
+            {isOpen ? <X size={22} /> : <MenuIcon size={22} />}
+          </button>
+          <div className="flex items-center gap-2 font-bold text-lg text-white">
+            <img src="/logo.png" alt="Amols Cafe Logo" className="h-8 w-auto object-contain shrink-0" />
+            <span><span className="text-[#F58A1F]">Amol's</span> Admin</span>
+          </div>
         </div>
-        <button onClick={() => setIsOpen(!isOpen)} className="text-white">
-          <MenuIcon size={24} />
-        </button>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar: slides in from left to right */}
       <div className={`
-        fixed md:static inset-y-0 left-0 z-40
+        fixed md:static inset-y-0 left-0 z-50 md:z-40
         w-64 bg-[#161616] border-r border-[#2a2a2a]
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        flex flex-col h-full pt-[72px] md:pt-0
+        flex flex-col h-full shadow-2xl md:shadow-none
       `}>
+        {/* Mobile Sidebar Header with Close button */}
+        <div className="p-4 md:hidden flex items-center justify-between border-b border-[#2a2a2a]">
+          <div className="flex items-center gap-2 font-bold text-lg text-white">
+            <img src="/logo.png" alt="Amols Cafe Logo" className="h-8 w-auto object-contain shrink-0" />
+            <span><span className="text-[#F58A1F]">Amol's</span> Admin</span>
+          </div>
+          <button
+            onClick={closeMenu}
+            className="p-1.5 rounded-lg text-[#B5B5B5] hover:text-white hover:bg-[#242424] transition-colors"
+            aria-label="Close admin menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Desktop Sidebar Header */}
         <div className="p-6 hidden md:block border-b border-[#2a2a2a]">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Amols Cafe Logo" className="h-10 w-auto object-contain shrink-0" />
@@ -60,7 +109,7 @@ export default function AdminSidebar() {
               <Link
                 key={link.name}
                 href={link.href}
-                onClick={() => setIsOpen(false)}
+                onClick={closeMenu}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${isActive
                     ? 'bg-[#F58A1F] text-white'
                     : 'text-[#B5B5B5] hover:bg-[#2a2a2a] hover:text-white'
@@ -99,8 +148,8 @@ export default function AdminSidebar() {
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-30 md:hidden"
-          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          onClick={closeMenu}
         />
       )}
     </>

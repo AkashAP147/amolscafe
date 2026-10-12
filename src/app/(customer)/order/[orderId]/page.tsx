@@ -107,7 +107,7 @@ function OrderTracker() {
   useEffect(() => {
     if (order?.orderStatus === 'ACCEPTED' && !hasNotifiedAccepted) {
       triggerDeviceAlert(
-        "Order Confirmed! 👨‍🍳",
+        "Order Confirmed!",
         "Your order has been picked and accepted by Amol's Cafe!",
         'ready'
       );
@@ -116,7 +116,7 @@ function OrderTracker() {
 
     if (order?.orderStatus === 'READY' && !hasNotifiedReady) {
       triggerDeviceAlert(
-        "Order Ready! 🎉",
+        "Order Ready!",
         "Your order is hot and ready for pickup at the counter!",
         'ready'
       );
@@ -125,7 +125,7 @@ function OrderTracker() {
 
     if (order?.orderStatus === 'COMPLETED' && !hasNotifiedCompleted) {
       triggerDeviceAlert(
-        "Order Delivered! ☕",
+        "Order Delivered!",
         "Thank you for visiting Amol's Cafe.",
         'ready'
       );
@@ -134,7 +134,7 @@ function OrderTracker() {
 
     if (order?.orderStatus === 'CANCELLED' && !hasNotifiedCancelled) {
       triggerDeviceAlert(
-        "Order Rejected ⚠️",
+        "Order Rejected",
         order.cancellationReason || "Sorry, your order could not be accepted.",
         'cancelled'
       );
@@ -368,7 +368,7 @@ function OrderTracker() {
                               {step.key === 'PENDING' && "Waiting for cafe to accept your order."}
                               {step.key === 'ACCEPTED' && "Your order has been confirmed!"}
                               {step.key === 'PREPARING' && "Your food is being prepared."}
-                              {step.key === 'READY' && "Your order is ready! 🎉"}
+                              {step.key === 'READY' && "Your order is ready!"}
                               {step.key === 'COMPLETED' && "Thank you for visiting Amol's Cafe."}
                             </motion.p>
                           )}

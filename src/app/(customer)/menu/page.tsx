@@ -107,9 +107,9 @@ export default function MenuPage() {
                 <Coffee size={13} /> Fresh Kitchen Online
               </span>
             </div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+            <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight flex items-center gap-2">
               {user ? (
-                <>Welcome back, <span className="text-[#F58A1F]">{user.displayName?.split(' ')[0] || 'Friend'}</span> 👋</>
+                <>Welcome back, <span className="text-[#F58A1F]">{user.displayName?.split(' ')[0] || 'Friend'}</span> <Sparkles size={28} className="text-[#F58A1F] inline shrink-0" /></>
               ) : (
                 <>Our <span className="text-[#F58A1F]">Delicious</span> Menu</>
               )}
@@ -138,82 +138,6 @@ export default function MenuPage() {
             )}
           </div>
         </div>
-
-        {/* CHEF'S RECOMMENDATIONS (Shown when no search filter is active) */}
-        {!searchQuery && selectedCategory === 'All' && recommendations.length > 0 && !loading && (
-          <section className="mb-12">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-[#F58A1F]/20 rounded-lg text-[#F58A1F]">
-                  <Flame size={18} />
-                </div>
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-                    Must-Try Recommendations
-                  </h2>
-                  <p className="text-xs text-[#888]">Customer favorites & top rated dishes</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {recommendations.slice(0, 4).map((rec) => (
-                <motion.div
-                  key={`rec-${rec.id}`}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-b from-[#1a1612] to-[#121212] border border-[#F58A1F]/30 hover:border-[#F58A1F] rounded-2xl p-4 flex flex-col justify-between group transition-all duration-300 shadow-lg shadow-black/40 relative overflow-hidden"
-                >
-                  <div className="absolute top-2.5 right-2.5 z-10 bg-[#F58A1F] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md">
-                    <Star size={10} className="fill-white" /> BESTSELLER
-                  </div>
-
-                  <div>
-                    {rec.image && (
-                      <div 
-                        className="relative w-full h-32 rounded-xl overflow-hidden mb-3 cursor-pointer bg-[#222]"
-                        onClick={() => setPreviewImage(rec.image || null)}
-                      >
-                        <img 
-                          src={rec.image} 
-                          alt={rec.name}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      </div>
-                    )}
-                    <h3 className="text-white font-bold text-base group-hover:text-[#F58A1F] transition-colors">{rec.name}</h3>
-                    <p className="text-[#888] text-xs line-clamp-2 mt-1 mb-3">{rec.description}</p>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a]/60">
-                    <span className="text-lg font-black text-white">₹{rec.price}</span>
-                    <button
-                      onClick={() => {
-                        if (!user) {
-                          handleShowToast({ name: "Please sign in to order", isLoginAlert: true });
-                          return;
-                        }
-                        addItem({
-                          id: rec.id,
-                          productId: rec.id,
-                          name: rec.name,
-                          price: rec.price,
-                          quantity: 1,
-                          image: rec.image
-                        });
-                        handleShowToast({ name: rec.name, image: rec.image });
-                      }}
-                      className="bg-[#F58A1F] hover:bg-[#e07a1b] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-[#F58A1F]/20 active:scale-95"
-                    >
-                      <Plus size={14} /> Add
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-        )}
 
         {/* Categories Pills */}
         <div className="mb-8">

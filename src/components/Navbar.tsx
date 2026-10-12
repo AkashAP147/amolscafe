@@ -2,17 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShoppingCart, Menu, X, User, LogOut, FileText, Shield } from 'lucide-react';
+import { ShoppingCart, Menu, X, User, LogOut, ShoppingBag, Info, Shield, UtensilsCrossed } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useCartStore } from '@/store/useCartStore';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const cartCount = useCartStore((state) => state.getCartCount());
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -61,20 +67,23 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-[#2a2a2a]">
+    <>
+      <nav className="sticky top-0 z-50 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-[#2a2a2a]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
-          {/* Mobile Left: Menu Toggle Button */}
-          <div className="flex md:hidden items-center">
-            <button
-              onClick={() => isMobileMenuOpen ? closeMobileMenu() : openMobileMenu()}
-              className="text-[#B5B5B5] hover:text-white p-2 rounded-xl border border-[#2a2a2a] bg-[#161616] focus:outline-none focus:border-[#F58A1F] transition-colors"
-              aria-label="Toggle navigation menu"
-            >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
+          {/* Mobile Left: Menu Toggle Button (only when logged in) */}
+          {user && (
+            <div className="flex md:hidden items-center">
+              <button
+                onClick={() => isMobileMenuOpen ? closeMobileMenu() : openMobileMenu()}
+                className="text-[#B5B5B5] hover:text-white p-2 rounded-xl border border-[#2a2a2a] bg-[#161616] focus:outline-none focus:border-[#F58A1F] transition-colors"
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
+          )}
 
           {/* Logo (Centered or aligned next to menu button on mobile, left on desktop) */}
           <div className="flex-shrink-0 flex items-center">
@@ -113,7 +122,7 @@ export default function Navbar() {
                   onClick={() => setShowDropdown(!showDropdown)}
                   className="flex items-center gap-2 text-[#B5B5B5] hover:text-white transition-colors focus:outline-none"
                 >
-                  <div className="w-8 h-8 rounded-full bg-[#161616] border border-[#2a2a2a] flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-[#161616] border border-[#2a2a2a] flex items-center justify-center text-[#F58A1F]">
                     <User size={16} />
                   </div>
                   <span className="text-sm font-medium hidden lg:block">{user.displayName?.split(' ')[0] || 'Profile'}</span>
@@ -126,13 +135,13 @@ export default function Navbar() {
                       <p className="text-xs text-[#B5B5B5] truncate">{user.email}</p>
                     </div>
                     <Link href="/my-orders" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#B5B5B5] hover:text-white hover:bg-[#2a2a2a] transition-colors">
-                      <FileText size={16} /> My Orders
+                      <ShoppingBag size={16} /> My Orders
                     </Link>
                     <Link href="/about" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#B5B5B5] hover:text-white hover:bg-[#2a2a2a] transition-colors">
-                      <FileText size={16} /> About & Contact
+                      <Info size={16} /> About & Contact
                     </Link>
                     {user?.email === 'amolscafe@gmail.com' && (
-                      <Link href="/admin/dashboard" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#F58A1F] hover:bg-[#2a2a2a] transition-colors">
+                      <Link href="/admin/kitchen" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#F58A1F] hover:bg-[#2a2a2a] transition-colors">
                         <Shield size={16} /> Admin Portal
                       </Link>
                     )}
@@ -180,118 +189,113 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Drawer Backdrop & Left Slide-out Panel */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div 
-            onClick={closeMobileMenu}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-            aria-hidden="true"
-          />
+    </nav>
 
-          {/* Drawer coming from the left */}
-          <div className="relative w-4/5 max-w-xs bg-[#161616] border-r border-[#2a2a2a] h-full shadow-2xl flex flex-col z-50 animate-in slide-in-from-left duration-300">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a]">
-              <div className="flex items-center gap-2">
-                <img src="/logo.png" alt="Amols Cafe Logo" className="h-8 w-auto object-contain" />
-                <span className="font-bold text-lg text-white">
-                  <span className="text-[#F58A1F]">Amol's</span> Cafe
-                </span>
+    {/* Mobile Drawer Backdrop & Left Slide-out Panel mounted to body via portal */}
+    {mounted && isMobileMenuOpen && user && createPortal(
+      <div className="md:hidden fixed inset-0 z-[9999] flex">
+        {/* Full-screen Dark Backdrop */}
+        <div 
+          onClick={closeMobileMenu}
+          className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+          aria-hidden="true"
+        />
+
+        {/* Drawer sliding in from the left: strictly full viewport height */}
+        <div className="relative w-4/5 max-w-[300px] bg-[#161616] border-r border-[#2a2a2a] h-[100dvh] shadow-2xl flex flex-col z-[10000] animate-in slide-in-from-left duration-300">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-[#2a2a2a] shrink-0">
+            <div className="flex items-center gap-2">
+              <img src="/logo.png" alt="Amols Cafe Logo" className="h-8 w-auto object-contain" />
+              <span className="font-bold text-lg text-white">
+                <span className="text-[#F58A1F]">Amol's</span> Cafe
+              </span>
+            </div>
+            <button
+              onClick={closeMobileMenu}
+              className="p-1.5 rounded-lg text-[#B5B5B5] hover:text-white hover:bg-[#242424] transition-colors"
+              aria-label="Close menu"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* User profile snippet */}
+          <div className="px-5 py-4 border-b border-[#2a2a2a] bg-[#121212] shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center text-[#F58A1F] font-bold shrink-0">
+                <User size={20} />
               </div>
-              <button
+              <div className="min-w-0 flex-1">
+                <p className="text-white font-bold text-sm truncate">{user.displayName || 'Customer'}</p>
+                <p className="text-xs text-[#888] truncate">{user.email}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Links list */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1.5 min-h-0">
+            <Link
+              href="/menu"
+              onClick={closeMobileMenu}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-base font-medium transition-colors ${
+                pathname === '/menu'
+                  ? 'text-[#F58A1F] bg-[#0B0B0B] font-bold'
+                  : 'text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]'
+              }`}
+            >
+              <UtensilsCrossed size={18} /> Menu
+            </Link>
+            <Link
+              href="/my-orders"
+              onClick={closeMobileMenu}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-base font-medium transition-colors ${
+                pathname === '/my-orders'
+                  ? 'text-[#F58A1F] bg-[#0B0B0B] font-bold'
+                  : 'text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]'
+              }`}
+            >
+              <ShoppingBag size={18} /> My Orders
+            </Link>
+            <Link
+              href="/about"
+              onClick={closeMobileMenu}
+              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-base font-medium transition-colors ${
+                pathname === '/about'
+                  ? 'text-[#F58A1F] bg-[#0B0B0B] font-bold'
+                  : 'text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]'
+              }`}
+            >
+              <Info size={18} /> About & Contact
+            </Link>
+            {user?.email === 'amolscafe@gmail.com' && (
+              <Link
+                href="/admin/kitchen"
                 onClick={closeMobileMenu}
-                className="p-1.5 rounded-lg text-[#B5B5B5] hover:text-white hover:bg-[#242424] transition-colors"
-                aria-label="Close menu"
+                className={`flex items-center gap-3 px-3 py-3 rounded-xl text-base font-medium transition-colors ${
+                  pathname.startsWith('/admin')
+                    ? 'text-[#F58A1F] bg-[#0B0B0B] font-bold'
+                    : 'text-[#F58A1F] hover:bg-[#0B0B0B]'
+                }`}
               >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* User profile snippet */}
-            {user && (
-              <div className="px-5 py-4 border-b border-[#2a2a2a] bg-[#121212]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center text-[#F58A1F] font-bold">
-                    <User size={20} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-white font-bold text-sm truncate">{user.displayName || 'Customer'}</p>
-                    <p className="text-xs text-[#888] truncate">{user.email}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Links list */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  onClick={closeMobileMenu}
-                  className={`block px-3 py-3 rounded-xl text-base font-medium transition-colors ${
-                    pathname === link.href
-                      ? 'text-[#F58A1F] bg-[#0B0B0B] font-bold'
-                      : 'text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]'
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
-              
-              {user ? (
-                <>
-                  <Link
-                    href="/my-orders"
-                    onClick={closeMobileMenu}
-                    className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B] transition-colors"
-                  >
-                    <FileText size={18} /> My Orders
-                  </Link>
-                  <Link
-                    href="/about"
-                    onClick={closeMobileMenu}
-                    className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B] transition-colors"
-                  >
-                    <FileText size={18} /> About & Contact
-                  </Link>
-                  {user?.email === 'amolscafe@gmail.com' && (
-                    <Link
-                      href="/admin/dashboard"
-                      onClick={closeMobileMenu}
-                      className="flex items-center gap-2.5 px-3 py-3 rounded-xl text-base font-medium text-[#F58A1F] hover:bg-[#0B0B0B] transition-colors"
-                    >
-                      <Shield size={18} /> Admin Portal
-                    </Link>
-                  )}
-                </>
-              ) : (
-                <Link
-                  href="/login"
-                  onClick={closeMobileMenu}
-                  className="block px-3 py-3.5 rounded-xl text-base font-bold text-white bg-[#F58A1F] hover:bg-[#e07a1b] text-center mt-4 transition-colors shadow-lg shadow-[#F58A1F]/20"
-                >
-                  Sign In / Create Account
-                </Link>
-              )}
-            </div>
-
-            {/* Footer / Sign Out */}
-            {user && (
-              <div className="p-4 border-t border-[#2a2a2a] bg-[#121212]">
-                <button
-                  onClick={() => { handleLogout(); closeMobileMenu(); }}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-bold text-red-500 hover:text-white hover:bg-red-500/20 border border-red-500/30 transition-colors"
-                >
-                  <LogOut size={16} /> Sign Out
-                </button>
-              </div>
+                <Shield size={18} /> Admin Portal
+              </Link>
             )}
           </div>
+
+          {/* Footer / Sign Out */}
+          <div className="p-4 border-t border-[#2a2a2a] bg-[#121212] shrink-0 mt-auto">
+            <button
+              onClick={() => { handleLogout(); closeMobileMenu(); }}
+              className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-sm font-bold text-red-500 hover:text-white hover:bg-red-500/20 border border-red-500/30 transition-colors"
+            >
+              <LogOut size={16} /> Sign Out
+            </button>
+          </div>
         </div>
-      )}
-    </nav>
+      </div>,
+      document.body
+    )}
+    </>
   );
 }

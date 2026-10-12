@@ -18,7 +18,7 @@ export default function Home() {
   useEffect(() => {
     if (user) {
       if (user.email && user.email.toLowerCase() === 'amolscafe@gmail.com') {
-        router.replace('/admin/dashboard');
+        router.replace('/admin/kitchen');
       } else {
         router.replace('/menu');
       }

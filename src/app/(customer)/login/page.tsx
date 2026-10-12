@@ -30,7 +30,7 @@ export default function CustomerLogin() {
       }
 
       if (email.toLowerCase() === 'amolscafe@gmail.com') {
-        router.replace('/admin/dashboard');
+        router.replace('/admin/kitchen');
       } else {
         const redirect = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('redirect') || '/menu' : '/menu';
         router.replace(redirect);

@@ -20,7 +20,7 @@ export default function AdminLogin() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/admin/dashboard');
+      router.push('/admin/kitchen');
     } catch (err: any) {
       console.error(err);
       setError('Invalid email or password. You are not authorized.');
