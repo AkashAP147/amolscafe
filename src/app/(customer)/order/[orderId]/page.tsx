@@ -5,8 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { db, auth } from '@/lib/firebase';
 import { ref, onValue, update } from 'firebase/database';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag, XCircle, AlertTriangle, Lock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { CheckCircle2, Clock, ChefHat, PackageCheck, ShoppingBag, XCircle, AlertTriangle, Lock, BellRing, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import Link from 'next/link';
 
@@ -21,6 +21,13 @@ function OrderTracker() {
   const [loading, setLoading] = useState(true);
   const [paymentSettings, setPaymentSettings] = useState<any>(null);
 
+  // Cross-platform popup banner state
+  const [liveAlert, setLiveAlert] = useState<{
+    title: string;
+    message: string;
+    type: 'ready' | 'cancelled';
+  } | null>(null);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -32,52 +39,72 @@ function OrderTracker() {
     return () => unsubscribe();
   }, [orderId, router]);
 
-  useEffect(() => {
-    try {
-      if (typeof window !== 'undefined' && 'Notification' in window && typeof Notification.requestPermission === 'function') {
-        const res = Notification.requestPermission();
-        if (res && typeof res.catch === 'function') {
-          res.catch(() => {});
-        }
-      }
-    } catch (e) {
-      // Ignore notification errors on mobile browsers
-    }
-  }, []);
-
   const [hasNotifiedReady, setHasNotifiedReady] = useState(false);
   const [hasNotifiedCancelled, setHasNotifiedCancelled] = useState(false);
 
+  // Trigger alert safely across all devices (Android, iOS Safari, desktop)
+  const triggerDeviceAlert = (title: string, message: string, type: 'ready' | 'cancelled') => {
+    // 1. In-app prominent banner (100% works on Android and iOS Safari)
+    setLiveAlert({ title, message, type });
+
+    // 2. Device vibration if supported (Android & mobile browsers)
+    try {
+      if (typeof window !== 'undefined' && 'navigator' in window && typeof navigator.vibrate === 'function') {
+        navigator.vibrate([200, 100, 200, 100, 400]);
+      }
+    } catch (e) {}
+
+    // 3. Audio alert (plays on all mobile browsers)
+    try {
+      const audio = new Audio('/bell.mp3');
+      audio.play().catch(() => {});
+    } catch (e) {}
+
+    // 4. Safe System Notification fallback (only if granted and not throwing constructor error)
+    try {
+      if (
+        typeof window !== 'undefined' &&
+        'Notification' in window &&
+        typeof Notification === 'function' &&
+        Notification.permission === 'granted'
+      ) {
+        // Wrap constructor in try to catch Android mobile Chrome illegal constructor error
+        try {
+          new Notification(title, {
+            body: message,
+            icon: '/logo.png'
+          });
+        } catch (err) {
+          // Fallback: try ServiceWorker registration if present
+          if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(reg => {
+              reg.showNotification(title, {
+                body: message,
+                icon: '/logo.png'
+              });
+            }).catch(() => {});
+          }
+        }
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     if (order?.orderStatus === 'READY' && !hasNotifiedReady) {
-      try {
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification("Order Ready!", {
-            body: `Your order is ready for pickup at the counter!`,
-            icon: "/logo.png"
-          });
-        }
-      } catch (e) {
-        // Safe fallback
-      }
-      try {
-        const audio = new Audio('/bell.mp3');
-        audio.play().catch(() => {});
-      } catch (e) {}
+      triggerDeviceAlert(
+        "Order Ready! 🎉",
+        "Your order is hot and ready for pickup at the counter!",
+        'ready'
+      );
       setHasNotifiedReady(true);
     }
 
     if (order?.orderStatus === 'CANCELLED' && !hasNotifiedCancelled) {
-      try {
-        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-          new Notification("Order Cancelled", {
-            body: order.cancellationReason || "Sorry, your order could not be accepted.",
-            icon: "/logo.png"
-          });
-        }
-      } catch (e) {
-        // Safe fallback
-      }
+      triggerDeviceAlert(
+        "Order Cancelled",
+        order.cancellationReason || "Sorry, your order could not be accepted.",
+        'cancelled'
+      );
       setHasNotifiedCancelled(true);
     }
   }, [order?.orderStatus, order?.cancellationReason, hasNotifiedReady, hasNotifiedCancelled]);
@@ -193,7 +220,43 @@ function OrderTracker() {
   const currentIndex = getStatusIndex(order.orderStatus);
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] py-12">
+    <div className="min-h-screen bg-[#0B0B0B] py-12 relative">
+      {/* Realtime Cross-Platform Order Alert Banner (Android & iOS) */}
+      <AnimatePresence>
+        {liveAlert && (
+          <motion.div
+            initial={{ opacity: 0, y: -60, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -60, scale: 0.95 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[70] w-[92%] max-w-md"
+          >
+            <div className={`p-4 rounded-2xl border shadow-2xl backdrop-blur-xl flex items-start gap-3.5 ${
+              liveAlert.type === 'ready'
+                ? 'bg-[#1a140c]/95 border-[#F58A1F] text-white shadow-[#F58A1F]/20'
+                : 'bg-[#1a0c0c]/95 border-red-500 text-white shadow-red-500/20'
+            }`}>
+              <div className={`p-2.5 rounded-xl shrink-0 ${
+                liveAlert.type === 'ready' ? 'bg-[#F58A1F] text-white' : 'bg-red-500 text-white'
+              }`}>
+                {liveAlert.type === 'ready' ? <BellRing size={20} className="animate-bounce" /> : <XCircle size={20} />}
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-extrabold text-sm sm:text-base tracking-tight">{liveAlert.title}</h4>
+                  <button 
+                    onClick={() => setLiveAlert(null)}
+                    className="text-xs text-[#888] hover:text-white px-2 py-0.5"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+                <p className="text-xs sm:text-sm text-[#DDD] mt-0.5 leading-snug">{liveAlert.message}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="text-center mb-12">

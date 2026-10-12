@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { ref, onValue, query, orderByChild } from 'firebase/database';
 import { useCartStore } from '@/store/useCartStore';
-import { Search, Plus, Minus, Filter, ShoppingBag, ChevronRight } from 'lucide-react';
+import { Search, Plus, Minus, Filter, ShoppingBag, ChevronRight, Sparkles, Flame, Star, Coffee } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -67,6 +67,8 @@ export default function MenuPage() {
 
   const categories = ['All', ...Array.from(new Set(menuItems.map(item => item.category)))];
 
+  const recommendations = menuItems.filter(item => item.popular && item.available);
+
   const filteredItems = menuItems.filter(item => {
     const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -85,42 +87,164 @@ export default function MenuPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] py-12 relative">
+    <div className="min-h-screen bg-[#0B0B0B] py-8 sm:py-12 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Header & Search */}
-        <div className="mb-12 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
+        {/* Welcome Header & Search */}
+        <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-2">Our Menu</h1>
-            <p className="text-[#B5B5B5]">Freshly prepared just for you.</p>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F58A1F]/15 text-[#F58A1F] border border-[#F58A1F]/30">
+                <Coffee size={13} /> Fresh Kitchen Online
+              </span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+              {user ? (
+                <>Welcome back, <span className="text-[#F58A1F]">{user.displayName?.split(' ')[0] || 'Friend'}</span> 👋</>
+              ) : (
+                <>Our <span className="text-[#F58A1F]">Delicious</span> Menu</>
+              )}
+            </h1>
+            <p className="text-[#B5B5B5] mt-1 text-sm sm:text-base">
+              Handcrafted beverages, piping hot snacks & chef specials.
+            </p>
           </div>
-          <div className="relative w-full md:w-96">
+
+          <div className="relative w-full md:w-80 lg:w-96">
             <input 
               type="text" 
-              placeholder="Search for food, drinks..." 
+              placeholder="Search dishes, drinks, snacks..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#161616] border border-[#2a2a2a] text-white rounded-full py-3 px-12 focus:outline-none focus:border-[#F58A1F] transition-colors"
+              className="w-full bg-[#161616] border border-[#2a2a2a] text-white rounded-2xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-[#F58A1F] text-sm transition-all shadow-inner"
             />
-            <Search className="absolute left-4 top-3.5 text-[#B5B5B5]" size={20} />
+            <Search className="absolute left-4 top-4 text-[#888]" size={18} />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3.5 top-3.5 text-xs text-[#888] hover:text-white bg-[#222] px-2 py-1 rounded-lg"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Categories */}
-        <div className="flex overflow-x-auto pb-4 mb-8 gap-3 scrollbar-hide">
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`whitespace-nowrap px-6 py-2 rounded-full font-medium transition-all ${
-                selectedCategory === category 
-                  ? 'bg-[#F58A1F] text-white shadow-[0_0_15px_rgba(245,138,31,0.3)]' 
-                  : 'bg-[#161616] text-[#B5B5B5] hover:text-white border border-[#2a2a2a] hover:border-[#444]'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
+        {/* CHEF'S RECOMMENDATIONS (Shown when no search filter is active) */}
+        {!searchQuery && selectedCategory === 'All' && recommendations.length > 0 && !loading && (
+          <section className="mb-12">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-[#F58A1F]/20 rounded-lg text-[#F58A1F]">
+                  <Flame size={18} />
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                    Must-Try Recommendations
+                  </h2>
+                  <p className="text-xs text-[#888]">Customer favorites & top rated dishes</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {recommendations.slice(0, 4).map((rec) => (
+                <motion.div
+                  key={`rec-${rec.id}`}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-gradient-to-b from-[#1a1612] to-[#121212] border border-[#F58A1F]/30 hover:border-[#F58A1F] rounded-2xl p-4 flex flex-col justify-between group transition-all duration-300 shadow-lg shadow-black/40 relative overflow-hidden"
+                >
+                  <div className="absolute top-2.5 right-2.5 z-10 bg-[#F58A1F] text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-md">
+                    <Star size={10} className="fill-white" /> BESTSELLER
+                  </div>
+
+                  <div>
+                    {rec.image && (
+                      <div 
+                        className="relative w-full h-32 rounded-xl overflow-hidden mb-3 cursor-pointer bg-[#222]"
+                        onClick={() => setPreviewImage(rec.image || null)}
+                      >
+                        <img 
+                          src={rec.image} 
+                          alt={rec.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      </div>
+                    )}
+                    <h3 className="text-white font-bold text-base group-hover:text-[#F58A1F] transition-colors">{rec.name}</h3>
+                    <p className="text-[#888] text-xs line-clamp-2 mt-1 mb-3">{rec.description}</p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-[#2a2a2a]/60">
+                    <span className="text-lg font-black text-white">₹{rec.price}</span>
+                    <button
+                      onClick={() => {
+                        if (!user) {
+                          handleShowToast({ name: "Please sign in to order", isLoginAlert: true });
+                          return;
+                        }
+                        addItem({
+                          id: rec.id,
+                          productId: rec.id,
+                          name: rec.name,
+                          price: rec.price,
+                          quantity: 1,
+                          image: rec.image
+                        });
+                        handleShowToast({ name: rec.name, image: rec.image });
+                      }}
+                      className="bg-[#F58A1F] hover:bg-[#e07a1b] text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-[#F58A1F]/20 active:scale-95"
+                    >
+                      <Plus size={14} /> Add
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Categories Pills */}
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter size={15} className="text-[#888]" />
+            <span className="text-xs font-semibold text-[#888] uppercase tracking-wider">Browse Categories</span>
+          </div>
+          <div className="flex overflow-x-auto pb-2 gap-2.5 scrollbar-hide">
+            {categories.map((category) => {
+              const count = category === 'All' 
+                ? menuItems.length 
+                : menuItems.filter(i => i.category === category).length;
+              return (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`whitespace-nowrap px-5 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 shrink-0 ${
+                    selectedCategory === category 
+                      ? 'bg-[#F58A1F] text-white shadow-lg shadow-[#F58A1F]/25 scale-100' 
+                      : 'bg-[#161616] text-[#B5B5B5] hover:text-white border border-[#2a2a2a] hover:border-[#444]'
+                  }`}
+                >
+                  <span>{category}</span>
+                  <span className={`text-[11px] px-1.5 py-0.2 rounded-md ${
+                    selectedCategory === category ? 'bg-black/25 text-white' : 'bg-[#222] text-[#777]'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Menu Grid Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-bold text-white">
+            {selectedCategory === 'All' ? 'Full Menu' : selectedCategory}
+            <span className="text-sm font-normal text-[#888] ml-2">({filteredItems.length} items)</span>
+          </h2>
         </div>
 
         {/* Menu Grid */}

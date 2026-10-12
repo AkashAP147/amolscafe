@@ -27,11 +27,14 @@ export default function Navbar() {
     setShowDropdown(false);
   };
 
-  const navLinks = [
-    { name: 'Home', href: '/' },
-    ...(user ? [{ name: 'Menu', href: '/menu' }] : []),
-    { name: 'About & Contact', href: '/about' },
-  ];
+  const navLinks = user 
+    ? [{ name: 'Menu', href: '/menu' }] 
+    : [
+        { name: 'Home', href: '/' },
+        { name: 'About & Contact', href: '/about' },
+      ];
+
+  const homeHref = user ? '/menu' : '/';
 
   return (
     <nav className="sticky top-0 z-50 bg-[#0B0B0B]/80 backdrop-blur-md border-b border-[#2a2a2a]">
@@ -40,7 +43,7 @@ export default function Navbar() {
           
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
-            <Link href="/" className="flex items-center gap-2 z-50">
+            <Link href={homeHref} className="flex items-center gap-2 z-50">
               <img src="/logo.png" alt="Amols Cafe Logo" className="h-10 w-auto object-contain shrink-0" />
               <span className="font-bold text-2xl tracking-tight text-white hidden sm:block">
                 <span className="text-[#F58A1F]">Amol's</span> Cafe
@@ -83,13 +86,16 @@ export default function Navbar() {
                 </button>
                 
                 {showDropdown && (
-                  <div className="absolute right-0 mt-3 w-48 bg-[#161616] border border-[#2a2a2a] rounded-2xl shadow-2xl py-2 z-50">
+                  <div className="absolute right-0 mt-3 w-52 bg-[#161616] border border-[#2a2a2a] rounded-2xl shadow-2xl py-2 z-50">
                     <div className="px-4 py-3 border-b border-[#2a2a2a] mb-2">
                       <p className="text-sm text-white font-medium truncate">{user.displayName || 'User'}</p>
                       <p className="text-xs text-[#B5B5B5] truncate">{user.email}</p>
                     </div>
                     <Link href="/my-orders" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#B5B5B5] hover:text-white hover:bg-[#2a2a2a] transition-colors">
                       <FileText size={16} /> My Orders
+                    </Link>
+                    <Link href="/about" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#B5B5B5] hover:text-white hover:bg-[#2a2a2a] transition-colors">
+                      <FileText size={16} /> About & Contact
                     </Link>
                     {user?.email === 'amolscafe@gmail.com' && (
                       <Link href="/admin/dashboard" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#F58A1F] hover:bg-[#2a2a2a] transition-colors">
@@ -177,6 +183,13 @@ export default function Navbar() {
                   className="block px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]"
                 >
                   My Orders
+                </Link>
+                <Link
+                  href="/about"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block px-3 py-3 rounded-xl text-base font-medium text-[#B5B5B5] hover:text-white hover:bg-[#0B0B0B]"
+                >
+                  About & Contact
                 </Link>
                 {user?.email === 'amolscafe@gmail.com' && (
                   <Link

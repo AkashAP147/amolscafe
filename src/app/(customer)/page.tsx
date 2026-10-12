@@ -4,11 +4,27 @@ import Link from 'next/link';
 import { ArrowRight, Coffee, Utensils, Star, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { ref, onValue } from 'firebase/database';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [heroImage, setHeroImage] = useState<string | null>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (user.email && user.email.toLowerCase() === 'amolscafe@gmail.com') {
+          router.replace('/admin/dashboard');
+        } else {
+          router.replace('/menu');
+        }
+      }
+    });
+    return () => unsubscribeAuth();
+  }, [router]);
 
   useEffect(() => {
     const heroRef = ref(db, 'settings/heroImage');
