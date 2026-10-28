@@ -1,8 +1,6 @@
 // Service Worker for Amol's Cafe PWA & Background Notifications
-const CACHE_NAME = 'amols-cafe-v1';
+const CACHE_NAME = 'amols-cafe-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/menu',
   '/manifest.json',
   '/logo.png',
   '/favicon.ico'
@@ -19,19 +17,48 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
+      // Purge all old caches (including 'amols-cafe-v1')
       return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            console.log('Purging outdated cache:', key);
+            return caches.delete(key);
+          }
+        })
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Cache-First strategy for images and static assets, Network-First for navigation
+// Allow client pages to trigger immediate activation
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// Routing strategy:
+// 1. Navigation (HTML pages): ALWAYS Network-First, never serve stale HTML when online
+// 2. Images & Static assets: Cache-First for fast rendering
+// 3. API & Firebase: Direct Network
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Skip non-GET requests or Firebase Realtime DB websockets/APIs
   if (event.request.method !== 'GET' || url.hostname.includes('firebase') || url.hostname.includes('googleapis')) {
+    return;
+  }
+
+  // Navigation requests: Always fetch from network so customers always see the newest deployment
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(async () => {
+          // If network is completely offline, try cache fallback
+          const cache = await caches.open(CACHE_NAME);
+          return (await cache.match(event.request)) || (await cache.match('/'));
+        })
+    );
     return;
   }
 
@@ -56,16 +83,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First with Cache fallback for general pages
+  // Other requests: Network with Cache fallback
   event.respondWith(
     fetch(event.request)
-      .then((response) => {
-        if (response && response.status === 200) {
-          const resClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
-        }
-        return response;
-      })
       .catch(() => {
         return caches.match(event.request);
       })
