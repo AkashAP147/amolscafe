@@ -18,7 +18,7 @@ const PREDEFINED_REJECTION_REASONS = [
 export default function KitchenDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'PENDING' | 'ACCEPTED' | 'PREPARING' | 'READY'>('PENDING');
+  const [activeTab, setActiveTab] = useState<'PENDING' | 'READY'>('PENDING');
   const previousPendingCount = useRef(0);
 
   // Reject modal state
@@ -124,9 +124,8 @@ export default function KitchenDashboard() {
   );
 
   const pending = activeOrders.filter(o => o.orderStatus === 'PENDING');
-  const accepted = activeOrders.filter(o => o.orderStatus === 'ACCEPTED');
-  const preparing = activeOrders.filter(o => o.orderStatus === 'PREPARING');
-  const ready = activeOrders.filter(o => o.orderStatus === 'READY');
+  // Group accepted, ready, preparing into Accepted Orders
+  const acceptedOrders = activeOrders.filter(o => ['ACCEPTED', 'READY', 'PREPARING'].includes(o.orderStatus));
 
   useEffect(() => {
     previousPendingCount.current = pending.length;
@@ -157,65 +156,35 @@ export default function KitchenDashboard() {
       </div>
 
       <div className="md:hidden flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-hide">
-        <button onClick={() => setActiveTab('PENDING')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'PENDING' ? 'bg-blue-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>New ({pending.length})</button>
-        <button onClick={() => setActiveTab('ACCEPTED')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'ACCEPTED' ? 'bg-yellow-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>Queue ({accepted.length})</button>
-        <button onClick={() => setActiveTab('PREPARING')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'PREPARING' ? 'bg-[#F58A1F] text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>Prep ({preparing.length})</button>
-        <button onClick={() => setActiveTab('READY')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'READY' ? 'bg-green-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>Ready ({ready.length})</button>
+        <button onClick={() => setActiveTab('PENDING')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'PENDING' ? 'bg-blue-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>New Orders ({pending.length})</button>
+        <button onClick={() => setActiveTab('READY')} className={`whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-colors ${activeTab === 'READY' ? 'bg-green-500 text-white' : 'bg-[#161616] text-[#B5B5B5] border border-[#2a2a2a]'}`}>Accepted Orders ({acceptedOrders.length})</button>
       </div>
 
       <div className="flex-grow flex flex-col md:flex-row gap-6 overflow-hidden md:overflow-x-auto pb-4">
         
         {/* NEW ORDERS */}
-        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'PENDING' ? 'block' : 'hidden md:block'}`}>
+        <div className={`flex-1 min-w-[320px] max-w-2xl h-full ${activeTab === 'PENDING' ? 'block' : 'hidden md:block'}`}>
           <KitchenColumn 
             title="New Orders" 
             count={pending.length} 
             color="bg-blue-500"
             orders={pending}
             actionLabel="ACCEPT ORDER"
-            actionColor="bg-blue-600 hover:bg-blue-500"
+            actionColor="bg-green-600 hover:bg-green-500"
             onAction={(id: string) => updateOrderStatus(id, 'ACCEPTED')}
             onReject={handleOpenRejectModal}
           />
         </div>
 
-        {/* ACCEPTED / QUEUE */}
-        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'ACCEPTED' ? 'block' : 'hidden md:block'}`}>
+        {/* ACCEPTED ORDERS */}
+        <div className={`flex-1 min-w-[320px] max-w-2xl h-full ${activeTab === 'READY' ? 'block' : 'hidden md:block'}`}>
           <KitchenColumn 
-            title="Queue" 
-            count={accepted.length} 
-            color="bg-yellow-500"
-            orders={accepted}
-            actionLabel="START PREPARING"
-            actionColor="bg-yellow-600 hover:bg-yellow-500"
-            onAction={(id: string) => updateOrderStatus(id, 'PREPARING')}
-            onReject={handleOpenRejectModal}
-          />
-        </div>
-
-        {/* PREPARING */}
-        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'PREPARING' ? 'block' : 'hidden md:block'}`}>
-          <KitchenColumn 
-            title="Preparing" 
-            count={preparing.length} 
-            color="bg-[#F58A1F]"
-            orders={preparing}
-            actionLabel="MARK READY"
-            actionColor="bg-[#F58A1F] hover:bg-[#e07a1b]"
-            onAction={(id: string) => updateOrderStatus(id, 'READY')}
-            onReject={handleOpenRejectModal}
-          />
-        </div>
-
-        {/* READY */}
-        <div className={`flex-none w-full md:w-80 lg:w-96 h-full ${activeTab === 'READY' ? 'block' : 'hidden md:block'}`}>
-          <KitchenColumn 
-            title="Ready for Pickup" 
-            count={ready.length} 
+            title="Accepted Orders" 
+            count={acceptedOrders.length} 
             color="bg-green-500"
-            orders={ready}
+            orders={acceptedOrders}
             actionLabel="COMPLETE ORDER"
-            actionColor="bg-green-600 hover:bg-green-500"
+            actionColor="bg-blue-600 hover:bg-blue-500"
             onAction={(id: string) => updateOrderStatus(id, 'COMPLETED')}
           />
         </div>

@@ -116,6 +116,15 @@ export default function Navbar() {
 
           {/* Icons: Cart & Profile (Desktop) */}
           <div className="hidden md:flex items-center space-x-6">
+            {user?.email === 'amolscafe@gmail.com' && (
+              <Link
+                href="/admin/kitchen"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F58A1F]/15 text-[#F58A1F] border border-[#F58A1F]/30 hover:bg-[#F58A1F] hover:text-white transition-all shadow-sm"
+              >
+                <Shield size={14} /> Admin Corner
+              </Link>
+            )}
+
             {user ? (
               <div className="relative">
                 <button 
@@ -141,8 +150,8 @@ export default function Navbar() {
                       <Info size={16} /> About & Contact
                     </Link>
                     {user?.email === 'amolscafe@gmail.com' && (
-                      <Link href="/admin/kitchen" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#F58A1F] hover:bg-[#2a2a2a] transition-colors">
-                        <Shield size={16} /> Admin Portal
+                      <Link href="/admin/kitchen" onClick={() => setShowDropdown(false)} className="flex items-center gap-3 px-4 py-2 text-sm text-[#F58A1F] hover:bg-[#2a2a2a] transition-colors font-medium">
+                        <Shield size={16} /> Admin Corner
                       </Link>
                     )}
                     <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:text-red-400 hover:bg-[#2a2a2a] transition-colors text-left mt-1">
@@ -169,8 +178,17 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile Right: Cart icon & Sign In */}
-          <div className="md:hidden flex items-center gap-3">
+          {/* Mobile Right: Cart icon, Admin shortcut & Sign In */}
+          <div className="md:hidden flex items-center gap-2">
+            {user?.email === 'amolscafe@gmail.com' && (
+              <Link
+                href="/admin/kitchen"
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold bg-[#F58A1F]/15 text-[#F58A1F] border border-[#F58A1F]/30"
+                title="Admin Corner"
+              >
+                <Shield size={13} /> Admin
+              </Link>
+            )}
             {user ? (
               <Link href="/cart" className="relative text-white p-2 rounded-xl bg-[#161616] border border-[#2a2a2a] flex items-center justify-center">
                 <ShoppingCart size={22} />
@@ -278,7 +296,7 @@ export default function Navbar() {
                     : 'text-[#F58A1F] hover:bg-[#0B0B0B]'
                 }`}
               >
-                <Shield size={18} /> Admin Portal
+                <Shield size={18} /> Admin Corner
               </Link>
             )}
           </div>

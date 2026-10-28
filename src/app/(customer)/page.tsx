@@ -15,15 +15,6 @@ export default function Home() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      if (user.email && user.email.toLowerCase() === 'amolscafe@gmail.com') {
-        router.replace('/admin/kitchen');
-      } else {
-        router.replace('/menu');
-      }
-    }
-  }, [user, router]);
 
   useEffect(() => {
     const heroRef = ref(db, 'settings/heroImage');

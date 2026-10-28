@@ -176,6 +176,17 @@ function OrderTracker() {
     }
   };
 
+  const handlePayWithUpi = async () => {
+    try {
+      await update(ref(db, `orders/${orderId}`), {
+        paymentMethod: 'UPI',
+        paymentStatus: 'Pending'
+      });
+    } catch (error) {
+      console.error("Failed to update payment method:", error);
+    }
+  };
+
   if (authLoading || (loading && currentUser)) {
     return (
       <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
@@ -240,14 +251,15 @@ function OrderTracker() {
   const statuses = [
     { key: 'PENDING', label: 'Order Placed', icon: ShoppingBag },
     { key: 'ACCEPTED', label: 'Order Accepted', icon: CheckCircle2 },
-    { key: 'PREPARING', label: 'Preparing', icon: ChefHat },
-    { key: 'READY', label: 'Ready', icon: PackageCheck },
     { key: 'COMPLETED', label: 'Completed', icon: CheckCircle2 },
   ];
 
   const getStatusIndex = (status: string) => {
     if (status === 'CANCELLED') return -1;
-    return statuses.findIndex(s => s.key === status);
+    if (status === 'PENDING') return 0;
+    if (status === 'ACCEPTED' || status === 'PREPARING' || status === 'READY') return 1;
+    if (status === 'COMPLETED') return 2;
+    return 0;
   };
 
   const currentIndex = getStatusIndex(order.orderStatus);
@@ -366,9 +378,7 @@ function OrderTracker() {
                               className="text-sm text-[#F58A1F] mt-1"
                             >
                               {step.key === 'PENDING' && "Waiting for cafe to accept your order."}
-                              {step.key === 'ACCEPTED' && "Your order has been confirmed!"}
-                              {step.key === 'PREPARING' && "Your food is being prepared."}
-                              {step.key === 'READY' && "Your order is ready!"}
+                              {step.key === 'ACCEPTED' && "Your order has been accepted and is being prepared!"}
                               {step.key === 'COMPLETED' && "Thank you for visiting Amol's Cafe."}
                             </motion.p>
                           )}
@@ -381,23 +391,38 @@ function OrderTracker() {
             )}
           </div>
 
-          {/* Right Column: Payment (if READY) and Order Details */}
+          {/* Right Column: Payment (immediately on order placement) and Order Details */}
           <div className="flex flex-col gap-8 h-full">
             {/* Payment Section */}
-            {paymentSettings?.upiId && order.orderStatus === 'READY' && (
+            {paymentSettings?.upiId && order.orderStatus !== 'CANCELLED' && order.orderStatus !== 'COMPLETED' && (
               <motion.div 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
                 className="bg-[#161616] rounded-2xl border border-[#2a2a2a] p-6 sm:p-10 flex flex-col items-center justify-center text-center"
               >
-                {order.paymentMethod === 'CASH' ? (
+                {order.paymentStatus === 'PAID' || order.paymentStatus === 'Paid' ? (
+                  <>
+                    <div className="w-16 h-16 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle2 size={32} />
+                    </div>
+                    <h2 className="text-xl font-bold text-white mb-2">Payment Confirmed</h2>
+                    <p className="text-[#B5B5B5]">₹{order.total} has been received.</p>
+                  </>
+                ) : order.paymentMethod === 'CASH' ? (
                   <>
                     <div className="w-16 h-16 bg-[#F58A1F]/20 rounded-full flex items-center justify-center mb-4">
                       <CheckCircle2 className="text-[#F58A1F]" size={32} />
                     </div>
                     <h2 className="text-xl font-bold text-white mb-2">Paying with Cash</h2>
-                    <p className="text-[#B5B5B5]">Please pay ₹{order.total} at the counter.</p>
+                    <p className="text-[#B5B5B5] mb-4">Please pay ₹{order.total} at the counter.</p>
+                    <button
+                      type="button"
+                      onClick={handlePayWithUpi}
+                      className="text-xs font-semibold text-[#F58A1F] hover:underline"
+                    >
+                      ← Pay via UPI / Scan QR instead
+                    </button>
                   </>
                 ) : (() => {
                   const rawUpiId = (paymentSettings.upiId || '').trim();

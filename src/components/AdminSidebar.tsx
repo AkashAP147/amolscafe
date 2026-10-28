@@ -6,7 +6,7 @@ import { LayoutDashboard, ChefHat, ClipboardList, TrendingUp, Settings, LogOut, 
 import { useState, useEffect } from 'react';
 
 const sidebarLinks = [
-  { name: 'Kitchen ', href: '/admin/kitchen', icon: ChefHat },
+  { name: 'Kitchen', href: '/admin/kitchen', icon: ChefHat },
   { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: 'Orders', href: '/admin/orders', icon: ClipboardList },
   { name: 'Menu & Prices', href: '/admin/menu', icon: MenuIcon },
