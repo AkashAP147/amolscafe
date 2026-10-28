@@ -346,7 +346,7 @@ export default function CartPage() {
                     if (auth.currentUser) {
                       window.location.href = '/checkout';
                     } else {
-                      window.location.href = '/login?redirect=/checkout';
+                      window.location.href = '/register?redirect=/checkout';
                     }
                   });
                 }}

@@ -67,7 +67,7 @@ export default function Home() {
                   if (auth.currentUser) {
                     window.location.href = '/menu';
                   } else {
-                    window.location.href = '/login?redirect=/menu';
+                    window.location.href = '/register?redirect=/menu';
                   }
                 });
               }}

@@ -1,14 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, User, ArrowRight, Loader2, Coffee } from 'lucide-react';
 import Link from 'next/link';
 
-export default function CustomerLogin() {
-  const [isLogin, setIsLogin] = useState(true);
+export function LoginForm({ initialMode = 'login' }: { initialMode?: 'login' | 'register' }) {
+  const searchParams = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  
+  const [isLogin, setIsLogin] = useState<boolean>(() => {
+    if (initialMode === 'register') return false;
+    if (modeParam === 'register' || modeParam === 'signup') return false;
+    return true;
+  });
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -32,7 +40,7 @@ export default function CustomerLogin() {
       if (email.toLowerCase() === 'amolscafe@gmail.com') {
         router.replace('/admin/kitchen');
       } else {
-        const redirect = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('redirect') || '/menu' : '/menu';
+        const redirect = searchParams.get('redirect') || '/menu';
         router.replace(redirect);
       }
     } catch (err: any) {
@@ -153,13 +161,14 @@ export default function CustomerLogin() {
             <p className="text-[#B5B5B5]">
               {isLogin ? "Don't have an account? " : "Already have an account? "}
               <button 
+                type="button"
                 onClick={() => {
                   setIsLogin(!isLogin);
                   setError('');
                 }} 
                 className="text-[#F58A1F] font-bold hover:underline"
               >
-                {isLogin ? 'Sign up' : 'Sign in'}
+                {isLogin ? 'Create one now' : 'Sign in'}
               </button>
             </p>
           </div>
@@ -185,5 +194,17 @@ export default function CustomerLogin() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CustomerLogin() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0B0B0B] flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#F58A1F]" />
+      </div>
+    }>
+      <LoginForm initialMode="login" />
+    </Suspense>
   );
 }

@@ -265,8 +265,8 @@ export default function MenuPage() {
               <p className="text-[#B5B5B5] text-xs">{toastItem.name}</p>
             </div>
             {toastItem.isLoginAlert ? (
-              <Link href="/login" className="ml-auto bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-colors font-bold text-sm">
-                Login
+              <Link href="/register?redirect=/menu" className="ml-auto bg-red-500 text-white px-4 py-2 rounded-xl hover:bg-red-600 transition-colors font-bold text-sm">
+                Sign Up
               </Link>
             ) : (
               <Link href="/cart" className="ml-auto bg-[#F58A1F] text-white p-2 rounded-xl hover:bg-[#e07a1b] transition-colors flex items-center justify-center shrink-0">

@@ -59,7 +59,7 @@ export default function CheckoutPage() {
           console.warn('Could not fetch user phone number (permission denied or missing).', error);
         }
       } else {
-        router.push('/login?redirect=/checkout');
+        router.push('/register?redirect=/checkout');
       }
     };
 
